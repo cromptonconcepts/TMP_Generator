@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTMP Generator Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --color-bg: #f2f5f9;
+            --color-panel: #ffffff;
+            --color-panel-soft: #f8fafc;
+            --color-border: #d7e0ea;
+            --color-text: #182838;
+            --color-muted: #617487;
+            --color-primary: #18324b;
+            --color-primary-strong: #0f2235;
+            --color-accent: #d39128;
+            --color-accent-soft: #fff4df;
+            --color-success: #19744c;
+            --color-success-soft: #ecf8f1;
+            --shadow-card: 0 16px 40px rgba(15, 34, 53, 0.08);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            background: linear-gradient(180deg, #eef3f8 0%, #f7f9fc 100%);
+            color: var(--color-text);
+        }
+
+        .app-shell {
+            max-width: 1480px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 24px;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            align-self: start;
+            background: var(--color-primary-strong);
+            color: white;
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .brand-block {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .brand-mark {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--color-accent), #f2b85b);
+            color: var(--color-primary-strong);
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-eyebrow,
+        label,
+        .summary-chip,
+        .reference-badge,
+        .section-status,
+        .nav-status {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .brand-eyebrow {
+            font-size: 0.78rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .brand-title {
+            margin: 2px 0 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .sidebar-note {
+            color: rgba(255,255,255,0.78);
+            font-size: 0.92rem;
+            margin-bottom: 16px;
+        }
+
+        .section-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .section-nav a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            transition: 0.2s ease;
+        }
+
+        .section-nav a:hover { background: rgba(255,255,255,0.1); }
+        .nav-status.complete, .section-status.complete { color: var(--color-success); }
+        .nav-status.partial, .section-status.partial { color: var(--color-accent); }
+
+        .container {
+            background: transparent;
+            padding: 0;
+        }
+
+        .hero-header {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            color: white;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 18px;
+        }
+
+        .hero-header h1 {
+            margin: 6px 0 8px;
+            font-size: 2rem;
+            border: 0;
+            padding: 0;
+            color: white;
+        }
+
+        .hero-header p { margin: 0; color: rgba(255,255,255,0.85); }
+
+        .form-section,
+        #templateIndexSection {
+            margin-bottom: 18px;
+            background: var(--color-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        #templateIndexSection { padding: 18px; }
+        #templateIndexSection h3, .section-body h4 { margin: 16px 0 12px; color: var(--color-primary); }
+
+        .form-section summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            font-weight: 700;
+            color: var(--color-primary-strong);
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .form-section summary::-webkit-details-marker { display: none; }
+        .section-heading { display: flex; align-items: center; gap: 10px; }
+        .section-icon { font-size: 1.1rem; }
+        .section-status {
+            min-width: 30px;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--color-panel-soft);
+            border: 1px solid var(--color-border);
+            color: var(--color-muted);
+        }
+
+        .section-body { padding: 0 18px 18px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--color-primary); }
+        input[type="text"], input[type="date"], input[type="email"], input[type="tel"], select, textarea {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            background: white;
+            color: var(--color-text);
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(211, 145, 40, 0.15);
+        }
+        textarea { min-height: 90px; resize: vertical; }
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+        .checkbox-group label {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            margin: 0;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            background: var(--color-panel-soft);
+        }
+        .summary-strip { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 15px; }
+        .summary-chip { background: #edf4fb; color: var(--color-primary); padding: 8px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; }
+        .template-detail { margin-top: 12px; border: 1px solid var(--color-border); border-radius: 10px; background: #fff; }
+        .template-detail summary { cursor: pointer; padding: 10px 12px; font-weight: 700; color: var(--color-primary); }
+        .detail-body { padding: 0 12px 12px; }
+        .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+        .field-group { margin-bottom: 12px; }
+        .field-note { font-size: 0.88em; color: var(--color-muted); margin-top: 4px; }
+        .info-banner { background: #eef6ff; border: 1px solid #cfe1f5; color: var(--color-primary); padding: 10px 12px; border-radius: 10px; margin: 10px 0 12px; }
+        .reference-card { border: 1px solid var(--color-border); border-radius: 10px; padding: 10px; background: var(--color-panel-soft); }
+        .reference-card-title { font-weight: 700; color: var(--color-primary); margin-bottom: 4px; }
+        .reference-badge { display: inline-block; margin-top: 6px; background: var(--color-success-soft); color: var(--color-success); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .cleanup-list { margin: 8px 0 0 18px; color: #555; }
+        .dynamic-table { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px; }
+        .dynamic-table-header, .dynamic-row { display: grid; gap: 8px; align-items: center; }
+        .dynamic-table-header { font-size: 0.85em; font-weight: 700; color: var(--color-primary); margin-bottom: 8px; }
+        .dynamic-table-body { display: flex; flex-direction: column; gap: 8px; }
+        .dynamic-row.revision-history { grid-template-columns: 1fr 2fr 1.3fr 1fr auto; }
+        .dynamic-row.change-log { grid-template-columns: 1.5fr 1.5fr 1fr auto; }
+        .dynamic-table-header.revision-history { grid-template-columns: 1fr 2fr 1.3fr 1fr auto; }
+        .dynamic-table-header.change-log { grid-template-columns: 1.5fr 1.5fr 1fr auto; }
+        .mini-button, .ghost-button, .primary-button {
+            border: none;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            border-radius: 10px;
+            cursor: pointer;
+            width: auto;
+            font-weight: 700;
+        }
+        .mini-button { background: var(--color-primary); color: white; margin-top: 8px; }
+        .mini-button:hover { background: var(--color-primary-strong); }
+        .remove-row-button { background-color: #b84040; }
+        .remove-row-button:hover { background-color: #902d2d; }
+        .ghost-button { background: transparent; border: 1px solid var(--color-border); color: var(--color-primary); }
+        .ghost-button:hover { background: #f5f8fb; }
+        .primary-button { background: linear-gradient(135deg, var(--color-accent), #ebb04d); color: #1b2430; box-shadow: 0 10px 20px rgba(211, 145, 40, 0.2); }
+        .primary-button:hover { filter: brightness(1.02); }
+        .action-row { display: flex; gap: 12px; margin-top: 16px; }
+        .action-row .ghost-button { flex: 0 0 auto; }
+        .action-row .primary-button { flex: 1; }
+        .hidden-source-field { display: none; }
+
+        .contact-person-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .contact-card {
+            background: var(--color-panel-soft);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .contact-card h5 {
+            margin: 0 0 10px;
+            font-size: 0.95rem;
+            color: var(--color-primary);
+        }
+
+        .upload-zone {
+            position: relative;
+            display: block;
+            border: 2px dashed #b7c7d8;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #fbfdff 0%, #f3f7fb 100%);
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .upload-zone.dragover { border-color: var(--color-accent); background: var(--color-accent-soft); }
+        .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-title { font-weight: 700; color: var(--color-primary); margin-bottom: 6px; }
+        .upload-meta { color: var(--color-muted); font-size: 0.9rem; }
+        .field-error { margin-top: 6px; color: #b84040; font-size: 0.82rem; }
+        .field-invalid { border-color: #cf4a4a !important; box-shadow: 0 0 0 3px rgba(207, 74, 74, 0.12) !important; }
+        .validation-summary, .restore-banner {
+            margin-bottom: 14px;
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+        .validation-summary {
+            display: none;
+            background: #fff4f4;
+            border: 1px solid #efc4c4;
+            color: #7a2121;
+        }
+        .restore-banner {
+            display: none;
+            background: #eef6ff;
+            border: 1px solid #cfe1f5;
+            color: var(--color-primary);
+        }
+        .banner-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .relevance-low { opacity: 0.7; }
+        .relevance-low summary { background: #f4f6f8; }
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 34, 53, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-card {
+            background: white;
+            border-radius: 16px;
+            padding: 22px 24px;
+            box-shadow: var(--shadow-card);
+            min-width: 280px;
+            text-align: center;
+        }
+        .spinner {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid #d7e0ea;
+            border-top-color: var(--color-accent);
+            margin: 0 auto 12px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1100px) {
+            .app-shell { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+
+        @media (max-width: 700px) {
+            .action-row { flex-direction: column; }
+            .dynamic-row.revision-history,
+            .dynamic-row.change-log,
+            .dynamic-table-header.revision-history,
+            .dynamic-table-header.change-log { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand-block">
+            <div class="brand-mark">CC</div>
+            <div>
+                <div class="brand-eyebrow">Crompton Concepts</div>
+                <div class="brand-title">TMP Workflow</div>
+            </div>
+        </div>
+        <div class="sidebar-note">Jump between sections and track form completion as you go.</div>
+        <nav class="section-nav">
+            <a href="#section-1"><span>1. Template</span><span class="nav-status" id="nav-status-1">○</span></a>
+            <a href="#section-2"><span>2. Analyse TGS</span><span class="nav-status" id="nav-status-2">○</span></a>
+            <a href="#section-3"><span>3. Project Overview</span><span class="nav-status" id="nav-status-3">○</span></a>
+            <a href="#section-4"><span>4. Document Control</span><span class="nav-status" id="nav-status-4">○</span></a>
+            <a href="#section-5"><span>5. Scope and Schedule</span><span class="nav-status" id="nav-status-5">○</span></a>
+            <a href="#section-6"><span>6. Contacts</span><span class="nav-status" id="nav-status-6">○</span></a>
+            <a href="#section-7"><span>7. Staging</span><span class="nav-status" id="nav-status-7">○</span></a>
+            <a href="#section-8"><span>8. Traffic Inputs</span><span class="nav-status" id="nav-status-8">○</span></a>
+            <a href="#section-9"><span>9. References</span><span class="nav-status" id="nav-status-9">○</span></a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <div class="hero-header">
+            <div class="brand-eyebrow">Crompton Concepts</div>
+            <h1>CTMP / TMP Generator</h1>
+            <p>Professional traffic management documentation for civil, infrastructure, and construction staging workflows.</p>
+        </div>
+
+        <form id="ctmpForm">
+            <div class="restore-banner" id="restoreBanner">
+                <strong>Previous draft found.</strong>
+                <div id="restoreBannerText">You can restore the last saved session.</div>
+                <div class="banner-actions">
+                    <button type="button" class="mini-button" onclick="restoreDraftFromStorage()">Restore previous session</button>
+                    <button type="button" class="ghost-button" onclick="discardStoredDraft()">Discard</button>
+                </div>
+            </div>
+            <div class="validation-summary" id="validationSummary"></div>
+        <details class="form-section" id="section-1" data-section="1" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">🧭</span><span>1. Select TMP Document Type</span></span>
+                <span class="section-status" id="status-1">○</span>
+            </summary>
+            <div class="section-body">
+                <div class="form-group">
+                    <label for="templateType">Template Type</label>
+                    <select id="templateType" name="templateType" required>
+                        <option value="" disabled selected>Select a template...</option>
+                        <option value="Full_TMP.docx">Full TMP (Complex, Multi-Stage)</option>
+                        <option value="Medium_TMP.docx">Medium TMP (Standard Works)</option>
+                        <option value="Mini_TMP.docx">Mini TMP (Short-term / Minor Works)</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <details class="form-section" id="section-2" data-section="2" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">📎</span><span>2. Upload TGS and Analyse</span></span>
+                <span class="section-status" id="status-2">○</span>
+            </summary>
+            <div class="section-body">
+                <div class="form-group">
+                    <label for="tgsPdf">Upload full TGS PDF set</label>
+                    <label class="upload-zone" id="uploadZone" for="tgsPdf">
+                        <input type="file" id="tgsPdf" name="tgsPdf" accept="application/pdf">
+                        <div class="upload-title">Drop the TGS PDF here or click to browse</div>
+                        <div class="upload-meta" id="uploadMeta">No file selected yet.</div>
+                    </label>
+                    <div class="field-note">Upload the TGS first, then click Analyse. The generator will suggest staging, methodology, and site details from the title block.</div>
+                </div>
+                <button type="button" class="mini-button" onclick="analyzeTgs()">🔍 Analyse TGS PDF</button>
+                <div id="tgsAnalysisStatus" class="field-note">No TGS analysed yet.</div>
+                <div id="tgsSuggestionPanel" class="reference-card" style="display:none; margin-top: 10px;"></div>
+            </div>
+        </details>
+
+        <div class="form-section" id="templateIndexSection" style="display:none;">
+            <h3>Template Guidance</h3>
+            <div class="info-banner">
+                This is a reference panel only. Fill out the main sections below, and the TMP fields will be mapped automatically.
+            </div>
+            <p id="templateSummary">Select Full, Medium, or Mini TMP to load the template guidance and cleanup summary.</p>
+            <div class="summary-strip" id="templateStats"></div>
+            <div id="templateFieldContainer"></div>
+            <div id="templateCleanupIndex"></div>
+        </div>
+
+        <details class="form-section" id="section-3" data-section="3" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">🏗️</span><span>3. Project Overview</span></span>
+                <span class="section-status" id="status-3">○</span>
+            </summary>
+            <div class="section-body">
+                <div class="field-grid">
+                    <div class="form-group">
+                        <label for="projectName">Project Name</label>
+                        <input type="text" id="projectName" name="projectName" placeholder="e.g., Crown St Development" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectLocation">Site Address</label>
+                        <input type="text" id="projectLocation" name="projectLocation" placeholder="e.g., 2 Crown St, South Brisbane" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="localGovernmentArea">Local Government Area</label>
+                        <input type="text" id="localGovernmentArea" name="localGovernmentArea" placeholder="e.g., Brisbane City Council">
+                    </div>
+                    <div class="form-group">
+                        <label for="developmentType">Development Type</label>
+                        <input type="text" id="developmentType" name="developmentType" placeholder="e.g., Mixed-Use">
+                    </div>
+                    <div class="form-group">
+                        <label for="numberOfFloors">Number of Floors</label>
+                        <input type="text" id="numberOfFloors" name="numberOfFloors" placeholder="e.g., 5 storeys">
+                    </div>
+                    <div class="form-group">
+                        <label for="lotParcelNumber">Lot and Parcel Number</label>
+                        <input type="text" id="lotParcelNumber" name="lotParcelNumber" placeholder="e.g., Lot 12 / RP123456">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientCompany">Client / Principal Contractor</label>
+                        <input type="text" id="clientCompany" name="clientCompany" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="trafficControlCompany">Traffic Control Provider Company</label>
+                        <input type="text" id="trafficControlCompany" name="trafficControlCompany" placeholder="e.g., Acme Traffic Control">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientContact">Client Contact</label>
+                        <input type="text" id="clientContact" name="clientContact">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientPosition">Client Position</label>
+                        <input type="text" id="clientPosition" name="clientPosition">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientPhone">Client Phone</label>
+                        <input type="tel" id="clientPhone" name="clientPhone">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientEmail">Client Email</label>
+                        <input type="email" id="clientEmail" name="clientEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="ccNumber">CC Number</label>
+                        <input type="text" id="ccNumber" name="ccNumber" placeholder="e.g., CC05855">
+                    </div>
+                    <div class="form-group">
+                        <label for="revisionNumber">Revision Number</label>
+                        <input type="text" id="revisionNumber" name="revisionNumber" placeholder="e.g., 8">
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <details class="form-section" id="section-4" data-section="4" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">🗂️</span><span>4. Document Control and TMP Registers</span></span>
+                <span class="section-status" id="status-4">○</span>
+            </summary>
+            <div class="section-body">
+            <div class="form-group">
+                <label for="documentReferencePreview">Document Reference Preview</label>
+                <input type="text" id="documentReferencePreview" readonly placeholder="Auto-generated from CC Number and Revision Number">
+            </div>
+            <div class="form-group">
+                <label for="tmrCert82Number">TMR CERT82 Number</label>
+                <input type="text" id="tmrCert82Number" name="tmrCert82Number" placeholder="e.g., OP1569">
+            </div>
+            <div class="form-group">
+                <label for="authorName">Author Name</label>
+                <input type="text" id="authorName" name="authorName" placeholder="e.g., Sanju Bhandari">
+            </div>
+            <div class="form-group">
+                <label for="authorSignature">Author Signature</label>
+                <input type="text" id="authorSignature" name="authorSignature" placeholder="e.g., S. Bhandari">
+            </div>
+            <div class="form-group">
+                <label for="authorPosition">Author Position</label>
+                <input type="text" id="authorPosition" name="authorPosition" placeholder="e.g., Traffic Technician">
+            </div>
+            <div class="form-group">
+                <label for="authorDate">Author Date</label>
+                <input type="date" id="authorDate" name="authorDate">
+            </div>
+            <div class="field-grid">
+                <div class="form-group">
+                    <label for="reviewerName">Reviewer Name</label>
+                    <input type="text" id="reviewerName" name="reviewerName" placeholder="e.g., Aaron Anthony">
+                </div>
+                <div class="form-group">
+                    <label for="reviewerOP">Reviewer OP Number</label>
+                    <input type="text" id="reviewerOP" name="reviewerOP" placeholder="e.g., OP611">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="documentPreparation">Document Preparation / Reviewers</label>
+                <textarea id="documentPreparation" name="documentPreparation" placeholder="One row per line: Role | Name | Signature | Position | Date"></textarea>
+                <div class="field-note">Use this for multiple reviewers with their dates and positions.</div>
+            </div>
+            <div class="form-group">
+                <label for="revisionHistory">Revision History</label>
+                <div class="dynamic-table" id="revisionHistoryEditor" data-target="revisionHistory" data-layout="revision-history" data-columns="Version No,New Document,Modified,Date">
+                    <div class="dynamic-table-header revision-history">
+                        <span>Version No</span>
+                        <span>New Document</span>
+                        <span>Modified</span>
+                        <span>Date</span>
+                        <span>Action</span>
+                    </div>
+                    <div class="dynamic-table-body"></div>
+                </div>
+                <button type="button" class="mini-button" onclick="addDynamicRow('revisionHistoryEditor')">+ Add Revision Row</button>
+                <textarea id="revisionHistory" class="hidden-source-field" name="revisionHistory" placeholder="One row per line: Version | New Document | Modified | Date"></textarea>
+                <div class="field-note">Add as many revision entries as needed. They are saved into the TMP in table format.</div>
+            </div>
+            <div class="form-group">
+                <label for="distributionList">Distribution List</label>
+                <textarea id="distributionList" name="distributionList" placeholder="One row per line: Name | Company | Position | Copy No. | Date"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="changeLog">Change Log</label>
+                <div class="dynamic-table" id="changeLogEditor" data-target="changeLog" data-layout="change-log" data-columns="Amendment,Section,Date">
+                    <div class="dynamic-table-header change-log">
+                        <span>Amendment</span>
+                        <span>Section</span>
+                        <span>Date</span>
+                        <span>Action</span>
+                    </div>
+                    <div class="dynamic-table-body"></div>
+                </div>
+                <button type="button" class="mini-button" onclick="addDynamicRow('changeLogEditor')">+ Add Change Row</button>
+                <textarea id="changeLog" class="hidden-source-field" name="changeLog" placeholder="One row per line: Amendment | Section | Date"></textarea>
+                <div class="field-note">Use this for multiple amendments instead of a single text box.</div>
+            </div>
+        </div>
+
+        </details>
+
+        <details class="form-section" id="section-5" data-section="5" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">📝</span><span>5. Scope and Schedule</span></span>
+                <span class="section-status" id="status-5">○</span>
+            </summary>
+            <div class="section-body">
+            <div class="form-group">
+                <label for="projectDescription">Project Description</label>
+                <textarea id="projectDescription" name="projectDescription" placeholder="Brief description of the project, nature of works, and goals."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="scopeOfWork">Scope of Works</label>
+                <textarea id="scopeOfWork" name="scopeOfWork" placeholder="Describe the construction works and traffic impacts."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="constructionActivity">Construction Activity / Methodology</label>
+                <textarea id="constructionActivity" name="constructionActivity" placeholder="Explain what will happen on site during the selected stage."></textarea>
+                <div class="field-note">If a TGS PDF is uploaded, the generator will try to auto-read the stage methodology from the TGS title block.</div>
+            </div>
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate" name="startDate">
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate" name="endDate">
+            </div>
+            <div class="form-group">
+                <label for="duration">Duration</label>
+                <input type="text" id="duration" name="duration" placeholder="e.g., 3 weeks">
+            </div>
+        </div>
+
+        </details>
+
+        <details class="form-section" id="section-6" data-section="6" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">👥</span><span>6. TMP Contact Tables</span></span>
+                <span class="section-status" id="status-6">○</span>
+            </summary>
+            <div class="section-body">
+                <h4>6.1 Badge Construction Project Contacts</h4>
+                <div class="contact-person-grid">
+                    <div class="contact-card">
+                        <h5>Project Manager</h5>
+                        <div class="form-group"><label for="pmName">Name</label><input type="text" id="pmName" name="pmName"></div>
+                        <div class="form-group"><label for="pmPhone">Phone</label><input type="tel" id="pmPhone" name="pmPhone"></div>
+                        <div class="form-group"><label for="pmEmail">Email</label><input type="email" id="pmEmail" name="pmEmail"></div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>Site Manager</h5>
+                        <div class="form-group"><label for="smName">Name</label><input type="text" id="smName" name="smName"></div>
+                        <div class="form-group"><label for="smPhone">Phone</label><input type="tel" id="smPhone" name="smPhone"></div>
+                        <div class="form-group"><label for="smEmail">Email</label><input type="email" id="smEmail" name="smEmail"></div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>Site Engineer</h5>
+                        <div class="form-group"><label for="seName">Name</label><input type="text" id="seName" name="seName"></div>
+                        <div class="form-group"><label for="sePhone">Phone</label><input type="tel" id="sePhone" name="sePhone"></div>
+                        <div class="form-group"><label for="seEmail">Email</label><input type="email" id="seEmail" name="seEmail"></div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>Works Officer / Supervisor</h5>
+                        <div class="form-group"><label for="woName">Name</label><input type="text" id="woName" name="woName"></div>
+                        <div class="form-group"><label for="woPhone">Phone</label><input type="tel" id="woPhone" name="woPhone"></div>
+                        <div class="form-group"><label for="woEmail">Email</label><input type="email" id="woEmail" name="woEmail"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="badgeContacts">Badge Construction Contacts Table</label>
+                    <textarea id="badgeContacts" name="badgeContacts" placeholder="One row per line: Name | Position | Phone | Email"></textarea>
+                </div>
+
+                <h4>6.2 Traffic Management Consultants</h4>
+                <div class="form-group">
+                    <label for="tmConsultants">Traffic Management Consultants Table</label>
+                    <textarea id="tmConsultants" name="tmConsultants" placeholder="One row per line: Name | Position | Phone | Email"></textarea>
+                    <div class="field-note">Crompton contacts can stay auto-filled, but you can edit them here if needed.</div>
+                </div>
+
+                <h4>6.3 Council / Authority Contact</h4>
+                <div class="contact-person-grid">
+                    <div class="contact-card">
+                        <h5>Council Contact</h5>
+                        <div class="form-group"><label for="councilDept">Department</label><input type="text" id="councilDept" name="councilDept" placeholder="e.g., Traffic and Transport"></div>
+                        <div class="form-group"><label for="councilOfficer">Officer</label><input type="text" id="councilOfficer" name="councilOfficer" placeholder="e.g., Assessing Officer"></div>
+                        <div class="form-group"><label for="councilPhone">Phone</label><input type="text" id="councilPhone" name="councilPhone" placeholder="e.g., (07) 5555 0000"></div>
+                        <div class="form-group"><label for="councilEmail">Email</label><input type="email" id="councilEmail" name="councilEmail" placeholder="e.g., council@example.com"></div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>DTMR Contact</h5>
+                        <div class="form-group"><label for="dtmrContact">Phone</label><input type="text" id="dtmrContact" name="dtmrContact"></div>
+                        <div class="form-group"><label for="dtmrEmail">Email</label><input type="email" id="dtmrEmail" name="dtmrEmail"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="authorityContacts">Authority Contacts Table</label>
+                    <textarea id="authorityContacts" name="authorityContacts" placeholder="One row per line: Department | Position | Phone | Email"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="dtmrContacts">DTMR / Assessing Officer Contacts Table</label>
+                    <textarea id="dtmrContacts" name="dtmrContacts" placeholder="One row per line: Department | Position | Phone | Email"></textarea>
+                </div>
+
+                <h4>6.4 Nominated Traffic Officer</h4>
+                <div class="contact-person-grid">
+                    <div class="contact-card">
+                        <h5>NTO Details</h5>
+                        <div class="form-group"><label for="ntoName">Name</label><input type="text" id="ntoName" name="ntoName"></div>
+                        <div class="form-group"><label for="ntoPosition">Position</label><input type="text" id="ntoPosition" name="ntoPosition" value="TMD"></div>
+                        <div class="form-group"><label for="ntoTmdNumber">TMD#</label><input type="text" id="ntoTmdNumber" name="ntoTmdNumber" placeholder="e.g., TMD1569"></div>
+                        <div class="form-group"><label for="ntoOpNumber">OP Number</label><input type="text" id="ntoOpNumber" name="ntoOpNumber" placeholder="e.g., OP1569"></div>
+                        <div class="form-group"><label for="ntoPhone">Phone</label><input type="tel" id="ntoPhone" name="ntoPhone"></div>
+                        <div class="form-group"><label for="ntoEmail">Email</label><input type="email" id="ntoEmail" name="ntoEmail"></div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>Emergency Contact</h5>
+                        <div class="form-group">
+                            <label for="emergencyContacts">Emergency Contacts</label>
+                            <textarea id="emergencyContacts" name="emergencyContacts" placeholder="One row per line: Name | Position | Phone"></textarea>
+                            <div class="field-note">You can copy this from the PM if needed.</div>
+                            <button type="button" class="mini-button" onclick="copyPmToEmergency()">Copy PM to Emergency</button>
+                        </div>
+                    </div>
+                    <div class="contact-card">
+                        <h5>Traffic Control Provider</h5>
+                        <div class="form-group"><label for="tcProviderName">Provider Name</label><input type="text" id="tcProviderName" name="tcProviderName" placeholder="e.g., Sam Traffic"></div>
+                        <div class="form-group"><label for="tcProviderPhone">Provider Phone</label><input type="text" id="tcProviderPhone" name="tcProviderPhone" placeholder="e.g., 0400 000 000"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="trafficControlContacts">Traffic Control Provider Contacts</label>
+                    <textarea id="trafficControlContacts" name="trafficControlContacts" placeholder="One row per line: Name | Position | Phone"></textarea>
+                    <div class="field-note">Use TBA if details are not yet confirmed.</div>
+                </div>
+            </div>
+        </details>
+
+        <details class="form-section" id="section-7" data-section="7" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">🚧</span><span>7. Construction Staging</span></span>
+                <span class="section-status" id="status-7">○</span>
+            </summary>
+            <div class="section-body">
+            <p style="font-size: 0.9em; color: #666;">Select the applicable TMP roadwork and TTM stages for this site. These options are aligned to the staging style used in the PDF.</p>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="stages" value="Gully Pit Inspection"> Gully Pit Inspection</label>
+                <label><input type="checkbox" name="stages" value="Service Locating"> Service Locating</label>
+                <label><input type="checkbox" name="stages" value="Barrier Installation"> Barrier Installation</label>
+                <label><input type="checkbox" name="stages" value="Footpath Works"> Footpath Works</label>
+                <label><input type="checkbox" name="stages" value="Crossover Construction"> Crossover Construction</label>
+                <label><input type="checkbox" name="stages" value="Kerb and Channel Works"> Kerb and Channel Works</label>
+                <label><input type="checkbox" name="stages" value="Excavation / Trenching"> Excavation / Trenching</label>
+                <label><input type="checkbox" name="stages" value="Pavement Reinstatement"> Pavement Reinstatement</label>
+                <label><input type="checkbox" name="stages" value="Line Marking and Signage"> Line Marking and Signage</label>
+                <label><input type="checkbox" name="stages" value="Final Traffic Switch"> Final Traffic Switch</label>
+            </div>
+        </div>
+
+        </details>
+
+        <details class="form-section" id="section-8" data-section="8" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">📊</span><span>8. Traffic Impact Assessment Parameters</span></span>
+                <span class="section-status" id="status-8">○</span>
+            </summary>
+            <div class="section-body">
+            <div class="form-group">
+                <label for="dataSource">Primary Traffic Volume Data Source</label>
+                <select id="dataSource" name="dataSource" required>
+                    <option value="hourly_profile">Target Year Hourly Database Data (Preferred)</option>
+                    <option value="standard_estimate">Standard Proportionate Estimate</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="trafficManagementNotes">Traffic Management Notes</label>
+                <textarea id="trafficManagementNotes" name="trafficManagementNotes" placeholder="Describe the TTM arrangements, detours, access arrangements, or pedestrian measures."></textarea>
+            </div>
+        </div>
+
+        </details>
+
+        <details class="form-section" id="section-9" data-section="9" open>
+            <summary>
+                <span class="section-heading"><span class="section-icon">📚</span><span>9. TGS References and Appendices</span></span>
+                <span class="section-status" id="status-9">○</span>
+            </summary>
+            <div class="section-body">
+            <div class="form-group">
+                <label for="tgsReference">TGS Reference</label>
+                <input type="text" id="tgsReference" name="tgsReference" placeholder="e.g., TGS-001">
+            </div>
+            <div class="form-group">
+                <label for="tgsNumber">TGS Number</label>
+                <input type="text" id="tgsNumber" name="tgsNumber" placeholder="e.g., 01">
+            </div>
+            <div class="field-note">The TGS upload and analysis step is handled at the top of the form.</div>
+            </div>
+        </details>
+
+        <div class="action-row">
+            <button type="button" class="ghost-button" onclick="fillDummyData()">🧪 Fill Test Data</button>
+            <button type="button" class="primary-button" onclick="generateReport()">🚀 Generate CTMP Document</button>
+        </div>
+    </form>
+    </main>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+        <div class="spinner"></div>
+        <div class="reference-card-title">Generating document</div>
+        <div class="field-note" id="loadingStatus">Rendering document…</div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:5000' : '';
+    const templateSelect = document.getElementById('templateType');
+    const templateIndexSection = document.getElementById('templateIndexSection');
+    const templateSummary = document.getElementById('templateSummary');
+    const templateStats = document.getElementById('templateStats');
+    const templateFieldContainer = document.getElementById('templateFieldContainer');
+    const templateCleanupIndex = document.getElementById('templateCleanupIndex');
+    const formElement = document.getElementById('ctmpForm');
+    const ccNumberInput = document.getElementById('ccNumber');
+    const revisionNumberInput = document.getElementById('revisionNumber');
+    const documentReferencePreview = document.getElementById('documentReferencePreview');
+    const tgsPdfInput = document.getElementById('tgsPdf');
+    const tgsAnalysisStatus = document.getElementById('tgsAnalysisStatus');
+    const tgsSuggestionPanel = document.getElementById('tgsSuggestionPanel');
+    const uploadZone = document.getElementById('uploadZone');
+    const uploadMeta = document.getElementById('uploadMeta');
+    const validationSummary = document.getElementById('validationSummary');
+    const restoreBanner = document.getElementById('restoreBanner');
+    const restoreBannerText = document.getElementById('restoreBannerText');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const DRAFT_STORAGE_KEY = 'ctmp-generator-draft-v2';
+
+    function apiUrl(path) {
+        return `${API_BASE}${path}`;
+    }
+
+    if (window.location.protocol === 'file:') {
+        window.location.replace(apiUrl('/'));
+    }
+
+    templateSelect.addEventListener('change', () => {
+        loadTemplateParameters();
+        updateTemplateRelevance();
+        saveDraftToLocalStorage();
+    });
+    ccNumberInput.addEventListener('input', updateDocumentReferencePreview);
+    revisionNumberInput.addEventListener('input', updateDocumentReferencePreview);
+    formElement.addEventListener('input', () => {
+        updateSectionStatuses();
+        hideValidationSummary();
+    });
+    formElement.addEventListener('change', () => {
+        updateSectionStatuses();
+        saveDraftToLocalStorage();
+    });
+    tgsPdfInput.addEventListener('change', updateUploadDisplay);
+    formElement.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('blur', () => validateField(field, true));
+    });
+
+    document.querySelectorAll('.section-nav a').forEach(link => {
+        link.addEventListener('click', () => {
+            const target = document.querySelector(link.getAttribute('href'));
+            if (target && target.tagName.toLowerCase() === 'details') {
+                target.open = true;
+            }
+        });
+    });
+
+    if (uploadZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, event => {
+                event.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, event => {
+                event.preventDefault();
+                uploadZone.classList.remove('dragover');
+            });
+        });
+
+        uploadZone.addEventListener('drop', event => {
+            const droppedFiles = event.dataTransfer?.files;
+            if (droppedFiles && droppedFiles.length) {
+                tgsPdfInput.files = droppedFiles;
+                updateUploadDisplay();
+            }
+        });
+    }
+
+    function updateDocumentReferencePreview() {
+        const ccValue = (ccNumberInput.value || '').trim();
+        const revisionValue = (revisionNumberInput.value || '').trim();
+
+        if (!ccValue && !revisionValue) {
+            documentReferencePreview.value = '';
+            return;
+        }
+
+        if (/\-TMP\-Rev\s*\d+/i.test(ccValue)) {
+            documentReferencePreview.value = ccValue;
+            return;
+        }
+
+        if (ccValue && revisionValue) {
+            documentReferencePreview.value = `${ccValue}-TMP-Rev ${revisionValue}`;
+            return;
+        }
+
+        documentReferencePreview.value = ccValue || `TMP-Rev ${revisionValue}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getFieldLabel(field) {
+        return field?.labels?.[0]?.textContent?.trim() || field?.name || 'This field';
+    }
+
+    function getErrorElement(field) {
+        let node = field.parentElement.querySelector('.field-error');
+        if (!node) {
+            node = document.createElement('div');
+            node.className = 'field-error';
+            field.parentElement.appendChild(node);
+        }
+        return node;
+    }
+
+    function setFieldError(field, message) {
+        if (!field) return;
+        const errorNode = getErrorElement(field);
+        errorNode.textContent = message || '';
+        field.classList.toggle('field-invalid', Boolean(message));
+    }
+
+    function validateField(field, showMessage = false) {
+        if (!field || field.disabled || field.classList.contains('hidden-source-field')) return true;
+
+        const value = String(field.value || '').trim();
+        let message = '';
+
+        if (field.hasAttribute('required') && !value && field.type !== 'file') {
+            message = `${getFieldLabel(field)} is required.`;
+        } else if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            message = `Enter a valid email for ${getFieldLabel(field)}.`;
+        } else if (field.type === 'file' && field.files?.length && !field.files[0].name.toLowerCase().endsWith('.pdf')) {
+            message = 'Please upload a PDF file.';
+        }
+
+        if (showMessage || message) {
+            setFieldError(field, message);
+        }
+
+        return !message;
+    }
+
+    function hideValidationSummary() {
+        validationSummary.style.display = 'none';
+        validationSummary.innerHTML = '';
+    }
+
+    function showValidationSummary(errors) {
+        if (!errors.length) {
+            hideValidationSummary();
+            return;
+        }
+        validationSummary.innerHTML = `<strong>Please fix the following before generating:</strong><ul class="cleanup-list">${errors.map(error => `<li>${escapeHtml(error)}</li>`).join('')}</ul>`;
+        validationSummary.style.display = 'block';
+    }
+
+    function validateFormBeforeSubmit() {
+        const fields = Array.from(formElement.querySelectorAll('input, select, textarea')).filter(field => !field.classList.contains('hidden-source-field'));
+        const errors = [];
+
+        fields.forEach(field => {
+            const isValid = validateField(field, true);
+            if (!isValid) {
+                errors.push(getErrorElement(field).textContent);
+            }
+        });
+
+        if (!templateSelect.value) {
+            errors.unshift('Select a TMP document type.');
+        }
+
+        showValidationSummary(errors.filter(Boolean));
+
+        if (errors.length) {
+            validationSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return false;
+        }
+
+        return true;
+    }
+
+    function setLoadingState(isLoading, message = 'Rendering document…') {
+        loadingStatus.textContent = message;
+        loadingOverlay.classList.toggle('active', Boolean(isLoading));
+    }
+
+    function startLoadingSequence() {
+        const steps = ['Validating form…', 'Rendering document…', 'Inserting TGS images…', 'Preparing download…'];
+        let index = 0;
+        setLoadingState(true, steps[0]);
+        return window.setInterval(() => {
+            index = Math.min(index + 1, steps.length - 1);
+            loadingStatus.textContent = steps[index];
+        }, 1400);
+    }
+
+    function copyPmToEmergency() {
+        const pmName = document.getElementById('pmName').value.trim();
+        const pmPhone = document.getElementById('pmPhone').value.trim();
+        const emergencyContacts = document.getElementById('emergencyContacts');
+        emergencyContacts.value = pmName || pmPhone ? `${pmName || 'Project Manager'} | Project Manager | ${pmPhone || ''}` : emergencyContacts.value;
+        validateField(emergencyContacts, true);
+        updateSectionStatuses();
+        saveDraftToLocalStorage();
+    }
+
+    function updateTemplateRelevance() {
+        const lowRelevanceMap = {
+            'Mini_TMP.docx': ['section-4', 'section-6', 'section-8'],
+            'Medium_TMP.docx': ['section-8'],
+            'Full_TMP.docx': []
+        };
+
+        document.querySelectorAll('.form-section[data-section]').forEach(section => section.classList.remove('relevance-low'));
+        (lowRelevanceMap[templateSelect.value] || []).forEach(id => {
+            const section = document.getElementById(id);
+            if (section) section.classList.add('relevance-low');
+        });
+    }
+
+    function saveDraftToLocalStorage() {
+        syncAllDynamicEditors();
+        const formData = new FormData(formElement);
+        const payload = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File) continue;
+            if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                payload[key] = Array.isArray(payload[key]) ? [...payload[key], value] : [payload[key], value];
+            } else {
+                payload[key] = value;
+            }
+        }
+
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), payload }));
+    }
+
+    function restoreDraftFromStorage() {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return;
+
+        const saved = JSON.parse(raw);
+        const payload = saved.payload || {};
+        formElement.querySelectorAll('input[type="checkbox"]').forEach(field => field.checked = false);
+
+        Object.entries(payload).forEach(([key, value]) => {
+            const field = formElement.elements.namedItem(key);
+            if (!field) return;
+
+            if (RadioNodeList.prototype.isPrototypeOf(field) || Array.isArray(value)) {
+                const values = Array.isArray(value) ? value : [value];
+                Array.from(formElement.querySelectorAll(`[name="${key}"]`)).forEach(node => {
+                    if (node.type === 'checkbox' || node.type === 'radio') {
+                        node.checked = values.includes(node.value);
+                    } else if (values[0] != null) {
+                        node.value = values[0];
+                    }
+                });
+            } else if (field.value !== undefined) {
+                field.value = value;
+            }
+        });
+
+        initializeAllDynamicEditors();
+        updateDocumentReferencePreview();
+        updateTemplateRelevance();
+        updateSectionStatuses();
+        hideValidationSummary();
+        restoreBanner.style.display = 'none';
+    }
+
+    function discardStoredDraft() {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        restoreBanner.style.display = 'none';
+    }
+
+    function showRestoreBannerIfNeeded() {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return;
+
+        const saved = JSON.parse(raw);
+        const timestamp = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : 'earlier';
+        restoreBannerText.textContent = `A draft was auto-saved on ${timestamp}.`;
+        restoreBanner.style.display = 'block';
+    }
+
+    function isFieldFilled(field) {
+        if (!field || field.disabled || field.closest('.hidden-source-field')) return false;
+        if (field.type === 'checkbox' || field.type === 'radio') return field.checked;
+        if (field.type === 'file') return !!(field.files && field.files.length);
+        return !!String(field.value || '').trim();
+    }
+
+    function updateSectionStatuses() {
+        document.querySelectorAll('.form-section[data-section]').forEach(section => {
+            const sectionId = section.dataset.section;
+            const statusBadge = document.getElementById(`status-${sectionId}`);
+            const navBadge = document.getElementById(`nav-status-${sectionId}`);
+            const requiredFields = Array.from(section.querySelectorAll('input[required], select[required], textarea[required]'));
+            const interactiveFields = Array.from(section.querySelectorAll('input, select, textarea')).filter(field => !field.classList.contains('hidden-source-field'));
+            const hasRequired = requiredFields.length > 0;
+            const isComplete = hasRequired ? requiredFields.every(isFieldFilled) : interactiveFields.some(isFieldFilled);
+            const isPartial = !isComplete && interactiveFields.some(isFieldFilled);
+            const symbol = isComplete ? '✅' : (isPartial ? '●' : '○');
+            const className = isComplete ? 'complete' : (isPartial ? 'partial' : '');
+
+            [statusBadge, navBadge].forEach(node => {
+                if (!node) return;
+                node.textContent = symbol;
+                node.classList.remove('complete', 'partial');
+                if (className) {
+                    node.classList.add(className);
+                }
+            });
+        });
+    }
+
+    async function estimatePdfPageCount(file) {
+        try {
+            const buffer = await file.arrayBuffer();
+            const text = new TextDecoder('latin1').decode(buffer);
+            const matches = text.match(/\/Type\s*\/Page\b/g) || [];
+            return matches.length || null;
+        } catch {
+            return null;
+        }
+    }
+
+    async function updateUploadDisplay() {
+        if (!uploadMeta) return;
+
+        const file = tgsPdfInput?.files?.[0];
+        if (!file) {
+            uploadMeta.textContent = 'No file selected yet.';
+            updateSectionStatuses();
+            return;
+        }
+
+        const pageCount = await estimatePdfPageCount(file);
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        uploadMeta.textContent = `${file.name} • ${sizeMb} MB${pageCount ? ` • approx. ${pageCount} pages` : ''}`;
+        updateSectionStatuses();
+    }
+
+    function applySuggestedStages(stages) {
+        const checkboxes = Array.from(document.querySelectorAll('input[name="stages"]'));
+        (stages || []).forEach(stage => {
+            const match = checkboxes.find(cb => cb.value.toLowerCase() === String(stage).toLowerCase());
+            if (match) {
+                match.checked = true;
+            }
+        });
+    }
+
+    function applyTgsSuggestions(data) {
+        const projectLocation = document.getElementById('projectLocation');
+        const constructionActivity = document.getElementById('constructionActivity');
+        const trafficManagementNotes = document.getElementById('trafficManagementNotes');
+        const tgsReference = document.getElementById('tgsReference');
+
+        if (data.siteLocation && !projectLocation.value.trim()) {
+            projectLocation.value = data.siteLocation;
+        }
+        if (data.methodology && !constructionActivity.value.trim()) {
+            constructionActivity.value = data.methodology;
+        }
+        if (data.optionAnalysis && !trafficManagementNotes.value.trim()) {
+            trafficManagementNotes.value = data.optionAnalysis;
+        }
+        if (data.sheetReference && !tgsReference.value.trim()) {
+            tgsReference.value = data.sheetReference;
+        }
+
+        applySuggestedStages(data.stages || []);
+
+        const stageList = (data.stages || []).length ? data.stages.map(item => `<li>${escapeHtml(item)}</li>`).join('') : '<li>No staging was detected.</li>';
+        tgsSuggestionPanel.innerHTML = `
+            <div class="reference-card-title">Suggested values from the uploaded TGS</div>
+            <ul class="cleanup-list">
+                <li><strong>Suite:</strong> ${escapeHtml(data.suite || 'Not detected')}</li>
+                <li><strong>Methodology:</strong> ${escapeHtml(data.methodology || 'Not detected')}</li>
+                <li><strong>Site:</strong> ${escapeHtml(data.siteLocation || 'Not detected')}</li>
+                <li><strong>Cross streets:</strong> ${escapeHtml(data.crossStreets || 'Not detected')}</li>
+                <li><strong>Road speed:</strong> ${escapeHtml(data.roadSpeed || 'Not detected')}</li>
+                <li><strong>TGS reference:</strong> ${escapeHtml(data.sheetReference || 'Not detected')}</li>
+            </ul>
+            <div class="reference-card-title" style="margin-top: 10px;">Suggested construction staging</div>
+            <ul class="cleanup-list">${stageList}</ul>
+            <div class="reference-card-title" style="margin-top: 10px;">Option analysis preview</div>
+            <div class="field-note">${escapeHtml(data.optionAnalysis || 'No option analysis generated yet.')}</div>
+        `;
+        tgsSuggestionPanel.style.display = 'block';
+        updateSectionStatuses();
+    }
+
+    async function analyzeTgs() {
+        if (!tgsPdfInput || !tgsPdfInput.files || !tgsPdfInput.files.length) {
+            alert('Please upload a TGS PDF first.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('tgsPdf', tgsPdfInput.files[0]);
+        tgsAnalysisStatus.textContent = 'Analysing TGS in the background...';
+        setLoadingState(true, 'Reading TGS title block…');
+
+        try {
+            const response = await fetch(apiUrl('/api/analyze-tgs'), {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Could not analyse the uploaded TGS');
+            }
+
+            const data = await response.json();
+            applyTgsSuggestions(data);
+            tgsAnalysisStatus.textContent = 'TGS analysis complete. Suggested values have been applied to the form.';
+        } catch (error) {
+            console.error('Error analysing TGS:', error);
+            tgsAnalysisStatus.textContent = 'TGS analysis failed.';
+            alert('There was an error analysing the TGS: ' + error.message);
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    function renderInputControl(field) {
+        const label = escapeHtml(field.label);
+        const helpText = escapeHtml(field.helpText || 'Mapped from the form below.');
+
+        return `
+            <div class="reference-card">
+                <div class="reference-card-title">${label}</div>
+                <div class="field-note">${helpText}</div>
+                <div class="reference-badge">Handled in the main form below</div>
+            </div>
+        `;
+    }
+
+    function renderList(title, items, emptyMessage) {
+        const safeItems = items || [];
+        const listItems = safeItems.map(item =>
+            `<li><strong>${escapeHtml(item.label)}</strong><div class="field-note">${escapeHtml(item.helpText || '')}</div></li>`
+        ).join('');
+
+        return `
+            <details class="template-detail">
+                <summary>${escapeHtml(title)} (${safeItems.length})</summary>
+                <div class="detail-body">
+                    ${safeItems.length ? `<ul class="cleanup-list">${listItems}</ul>` : `<p class="field-note">${escapeHtml(emptyMessage)}</p>`}
+                </div>
+            </details>
+        `;
+    }
+
+    function renderTemplateIndex(data) {
+        templateIndexSection.style.display = 'block';
+        templateSummary.textContent = `${data.template} loaded. Use this as a guide only, then complete Sections 3 to 9 below.`;
+
+        templateStats.innerHTML = `
+            <div class="summary-chip">Update: ${data.counts.update}</div>
+            <div class="summary-chip">Auto-filled: ${data.counts.auto}</div>
+            <div class="summary-chip">Replace with TGS: ${data.counts.replace}</div>
+            <div class="summary-chip">Delete/Cleanup: ${data.counts.delete}</div>
+        `;
+
+        const sectionsHtml = (data.sections || []).map(section => `
+            <details class="template-detail">
+                <summary>${escapeHtml(section.name)} reference (${section.fields.length})</summary>
+                <div class="detail-body">
+                    <div class="field-grid">
+                        ${section.fields.map(renderInputControl).join('')}
+                    </div>
+                </div>
+            </details>
+        `).join('');
+
+        templateFieldContainer.innerHTML = sectionsHtml || '<p class="field-note">No extra user-entered fields are required for this template. The main form below is sufficient.</p>';
+        templateCleanupIndex.innerHTML = `
+            ${renderList('Auto-filled from the main form', data.fields.auto || [], 'No auto-filled fields found.')}
+            ${renderList('Replaced by TGS PDF pages or caption', data.fields.replace || [], 'No image placeholders found.')}
+            ${renderList('Deleted or cleaned automatically', data.fields.delete || [], 'No cleanup fields found.')}
+        `;
+    }
+
+    function getDynamicEditorConfig(editorId) {
+        const editor = document.getElementById(editorId);
+        if (!editor) return null;
+
+        return {
+            editor,
+            body: editor.querySelector('.dynamic-table-body'),
+            target: document.getElementById(editor.dataset.target),
+            columns: (editor.dataset.columns || '').split(',').map(item => item.trim()).filter(Boolean),
+            layout: editor.dataset.layout || ''
+        };
+    }
+
+    function syncDynamicEditor(editorId) {
+        const config = getDynamicEditorConfig(editorId);
+        if (!config || !config.target) return;
+
+        const lines = Array.from(config.body.querySelectorAll('.dynamic-row')).map(row => {
+            const values = Array.from(row.querySelectorAll('input')).map(input => (input.value || '').trim());
+            return values.some(Boolean) ? values.join(' | ') : '';
+        }).filter(Boolean);
+
+        config.target.value = lines.join('\n');
+    }
+
+    function addDynamicRow(editorId, initialValues = []) {
+        const config = getDynamicEditorConfig(editorId);
+        if (!config) return;
+
+        const row = document.createElement('div');
+        row.className = `dynamic-row ${config.layout}`;
+
+        config.columns.forEach((column, index) => {
+            const input = document.createElement('input');
+            const normalizedColumn = column.toLowerCase();
+            input.type = /date|day/.test(normalizedColumn) ? 'date' : 'text';
+            input.placeholder = column;
+            input.value = initialValues[index] || '';
+            input.addEventListener('input', () => syncDynamicEditor(editorId));
+            input.addEventListener('blur', () => validateField(input, true));
+            row.appendChild(input);
+        });
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'mini-button remove-row-button';
+        removeButton.textContent = 'Remove';
+        removeButton.addEventListener('click', () => {
+            row.remove();
+            if (!config.body.querySelector('.dynamic-row')) {
+                addDynamicRow(editorId);
+            }
+            syncDynamicEditor(editorId);
+        });
+        row.appendChild(removeButton);
+
+        config.body.appendChild(row);
+        syncDynamicEditor(editorId);
+    }
+
+    function populateDynamicEditor(editorId) {
+        const config = getDynamicEditorConfig(editorId);
+        if (!config || !config.body) return;
+
+        config.body.innerHTML = '';
+        const rawLines = (config.target?.value || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+
+        if (!rawLines.length) {
+            addDynamicRow(editorId);
+            return;
+        }
+
+        rawLines.forEach(line => {
+            const values = line.split('|').map(part => part.trim());
+            addDynamicRow(editorId, values);
+        });
+
+        syncDynamicEditor(editorId);
+    }
+
+    function initializeAllDynamicEditors() {
+        populateDynamicEditor('revisionHistoryEditor');
+        populateDynamicEditor('changeLogEditor');
+    }
+
+    function syncAllDynamicEditors() {
+        syncDynamicEditor('revisionHistoryEditor');
+        syncDynamicEditor('changeLogEditor');
+    }
+
+    function fillDummyData() {
+        // Fill text inputs
+        document.getElementById('templateType').value = 'Full_TMP.docx';
+        document.getElementById('projectName').value = 'Test Dev Project Alpha';
+        document.getElementById('projectLocation').value = '100 Example Road, Brisbane QLD 4000';
+        document.getElementById('clientCompany').value = 'Acme Construction Contractors';
+        document.getElementById('trafficControlCompany').value = 'Acme Traffic Control';
+        document.getElementById('developmentType').value = 'Mixed-Use Development';
+        document.getElementById('numberOfFloors').value = '5 storeys';
+        document.getElementById('lotParcelNumber').value = 'Lot 12 / RP123456';
+        document.getElementById('ccNumber').value = 'CC05855';
+        document.getElementById('revisionNumber').value = '8';
+        document.getElementById('tmrCert82Number').value = 'OP1569';
+        document.getElementById('authorName').value = 'Sanju Bhandari';
+        document.getElementById('authorSignature').value = 'S. Bhandari';
+        document.getElementById('authorPosition').value = 'Traffic Technician';
+        document.getElementById('authorDate').value = '2026-04-15';
+        document.getElementById('reviewerName').value = 'Aaron Anthony';
+        document.getElementById('reviewerOP').value = 'OP611';
+        document.getElementById('documentPreparation').value = 'Prepared By | Sanju Bhandari | S. Bhandari | Traffic Technician | 15/04/2026\nReviewed By | Aaron Anthony | A. Anthony | Traffic Management Designer (OP611) | 15/04/2026';
+        document.getElementById('clientContact').value = 'Alex Example';
+        document.getElementById('clientPosition').value = 'Project Manager';
+        document.getElementById('clientPhone').value = '0400000000';
+        document.getElementById('clientEmail').value = 'alex@example.com';
+        document.getElementById('pmName').value = 'Pat Manager';
+        document.getElementById('pmPhone').value = '0411111111';
+        document.getElementById('pmEmail').value = 'pm@example.com';
+        document.getElementById('smName').value = 'Sam Site';
+        document.getElementById('smPhone').value = '0422222222';
+        document.getElementById('smEmail').value = 'site@example.com';
+        document.getElementById('seName').value = 'Erin Engineer';
+        document.getElementById('sePhone').value = '0433333333';
+        document.getElementById('seEmail').value = 'engineer@example.com';
+        document.getElementById('woName').value = 'Will Officer';
+        document.getElementById('woPhone').value = '0444444444';
+        document.getElementById('woEmail').value = 'wo@example.com';
+        document.getElementById('ntoName').value = 'Nina Traffic';
+        document.getElementById('ntoPosition').value = 'TMD';
+        document.getElementById('ntoTmdNumber').value = 'TMD1569';
+        document.getElementById('ntoOpNumber').value = 'OP1569';
+        document.getElementById('ntoPhone').value = '0455555555';
+        document.getElementById('ntoEmail').value = 'nto@example.com';
+        document.getElementById('councilDept').value = 'Traffic and Transport';
+        document.getElementById('councilOfficer').value = 'Assessing Officer';
+        document.getElementById('councilPhone').value = '(07) 5555 0000';
+        document.getElementById('councilEmail').value = 'council@example.com';
+        document.getElementById('dtmrContact').value = '(07) 5555 1234';
+        document.getElementById('dtmrEmail').value = 'dtmr@example.com';
+        document.getElementById('tcProviderName').value = 'Sam Traffic';
+        document.getElementById('tcProviderPhone').value = '0400123123';
+        document.getElementById('badgeContacts').value = 'Pat Manager | Project Manager | 0411111111 | pm@example.com\nSam Site | Site Manager | 0422222222 | site@example.com\nWill Officer | Site Supervisor | 0444444444 | wo@example.com';
+        document.getElementById('tmConsultants').value = 'Sanju Bhandari | Traffic Technician | (07) 3187 8940 | operations@cromptonconcepts.com.au';
+        document.getElementById('authorityContacts').value = 'Traffic and Transport | Assessing Officer | (07) 5555 0000 | council@example.com';
+        document.getElementById('dtmrContacts').value = 'DTMR | Assessing Officer | (07) 5555 1234 | dtmr@example.com';
+        document.getElementById('revisionHistory').value = '8 | CC05855-TMP-Rev 8 | TGS/TMP | 15/04/2026';
+        document.getElementById('distributionList').value = 'Alex Example | Acme Construction Contractors | Project Manager | 1 | 15/04/2026';
+        document.getElementById('changeLog').value = 'Initial Issue | All Sections | 15/04/2026';
+        document.getElementById('trafficControlContacts').value = 'Sam Site | Site Manager | 0422222222\nWill Officer | Site Supervisor | 0444444444';
+        document.getElementById('emergencyContacts').value = 'Alex Example | Project Manager | 0400000000';
+        document.getElementById('dataSource').value = 'hourly_profile';
+
+        // Check specific TMP roadwork stages
+        const checkboxes = document.querySelectorAll('input[name="stages"]');
+        checkboxes.forEach(cb => cb.checked = false);
+
+        const targetStages = ['Gully Pit Inspection', 'Footpath Works', 'Crossover Construction'];
+        checkboxes.forEach(cb => {
+            if (targetStages.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+
+        updateDocumentReferencePreview();
+        initializeAllDynamicEditors();
+        loadTemplateParameters();
+
+        updateSectionStatuses();
+        console.log("Dummy data populated.");
+        alert("Test data filled! Please upload the TGS PDF set, then click Generate.");
+    }
+
+    async function loadTemplateParameters() {
+        const template = templateSelect.value;
+        if (!template) {
+            templateIndexSection.style.display = 'none';
+            templateSummary.textContent = 'Select Full, Medium, or Mini TMP to load the template guidance and cleanup summary.';
+            templateStats.innerHTML = '';
+            templateFieldContainer.innerHTML = '';
+            templateCleanupIndex.innerHTML = '';
+            return;
+        }
+
+        templateIndexSection.style.display = 'block';
+        templateSummary.textContent = 'Loading template field index...';
+        templateStats.innerHTML = '';
+        templateFieldContainer.innerHTML = '';
+        templateCleanupIndex.innerHTML = '';
+
+        try {
+            const response = await fetch(apiUrl('/api/template-index?template=' + encodeURIComponent(template)));
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Could not load template parameter index');
+            }
+
+            const data = await response.json();
+            renderTemplateIndex(data);
+        } catch (error) {
+            console.error('Error loading template index:', error);
+            templateSummary.textContent = 'Failed to load the template parameter index: ' + error.message;
+        }
+    }
+
+    async function generateReport() {
+        syncAllDynamicEditors();
+
+        if (!validateFormBeforeSubmit()) {
+            return;
+        }
+
+        saveDraftToLocalStorage();
+        const formData = new FormData(formElement);
+        const progressTimer = startLoadingSequence();
+
+        try {
+            const response = await fetch(apiUrl('/api/generate-ctmp'), {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Document generation failed.');
+            }
+
+            loadingStatus.textContent = 'Preparing download…';
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            const pName = formData.get('projectName') || 'Project';
+            a.download = String(pName).replace(/\s+/g, '_') + '_CTMP.docx';
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            hideValidationSummary();
+        } catch (error) {
+            console.error('Error generating report:', error);
+            showValidationSummary([error.message || 'Document generation failed.']);
+        } finally {
+            window.clearInterval(progressTimer);
+            setLoadingState(false);
+        }
+    }
+
+    window.setInterval(saveDraftToLocalStorage, 30000);
+    window.addEventListener('beforeunload', saveDraftToLocalStorage);
+
+    initializeAllDynamicEditors();
+    updateTemplateRelevance();
+    updateSectionStatuses();
+    updateUploadDisplay();
+    showRestoreBannerIfNeeded();
+</script>
+
+</body>
+</html>
