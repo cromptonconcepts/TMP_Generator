@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import re
@@ -21,7 +22,7 @@ CORS(app, origins=['http://127.0.0.1:5000'])
 
 BASE_DIR = os.path.dirname(__file__)
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'New_Templates')
-HTML_FILE = os.path.join(BASE_DIR, 'ctmp_generator.html')
+HTML_FILE = os.path.join(BASE_DIR, 'index.html')
 
 BASE_FORM_FIELDS = {
     'project_name', 'project_location', 'local_government_area', 'client_company',
@@ -1105,7 +1106,7 @@ def cleanup_rendered_document(document, context, has_uploaded_images):
     enable_update_fields(document)
 
 
-def extract_tgs_page_images(request_files):
+def extract_tgs_page_images(request_files, render_scale=2):
     page_images = []
     pdf_file = request_files.get('tgsPdf')
 
@@ -1136,7 +1137,7 @@ def extract_tgs_page_images(request_files):
                     if not has_tgs_sheet and not drawing_page and not has_title_block_metadata:
                         continue
 
-                    pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+                    pixmap = page.get_pixmap(matrix=fitz.Matrix(render_scale, render_scale), alpha=False)
                     page_images.append({
                         'name': f'{pdf_file.filename}-page-{page_index + 1}.png',
                         'bytes': pixmap.tobytes('png'),
@@ -1210,6 +1211,46 @@ def analyze_tgs():
     except Exception as error:
         print(f'Error analysing TGS: {error}')
         message = str(error) if app.config['DEBUG'] else 'TGS analysis failed. Check server logs.'
+        return jsonify({'error': message}), 500
+
+
+def build_tgs_preview_payload(uploaded_images):
+    preview_pages = []
+
+    for index, image_info in enumerate(uploaded_images or [], start=1):
+        page_number = image_info.get('page_number', index)
+        sheet_reference = normalize_context_value(image_info.get('sheet_reference', '')).strip()
+        stage_name = normalize_context_value(image_info.get('stage_name', '')).strip()
+        methodology = normalize_context_value(image_info.get('methodology', '')).strip()
+        subtitle_parts = [part for part in [stage_name, methodology] if part]
+
+        preview_pages.append({
+            'id': f'tgs-{index}',
+            'pageNumber': page_number,
+            'sheetReference': sheet_reference,
+            'stageName': stage_name,
+            'methodology': methodology,
+            'label': sheet_reference or f'TGS Page {page_number}',
+            'subtitle': ' • '.join(subtitle_parts),
+            'imageUrl': f"data:image/png;base64,{base64.b64encode(image_info['bytes']).decode('ascii')}",
+        })
+
+    return preview_pages
+
+
+@app.route('/api/tgs-preview', methods=['POST'])
+def tgs_preview():
+    try:
+        uploaded_images = extract_tgs_page_images(request.files, render_scale=1.15)
+        if not uploaded_images:
+            return jsonify({'error': 'No TGS PDF or diagram pages were found'}), 400
+
+        response = summarize_tgs_analysis(uploaded_images)
+        response['pages'] = build_tgs_preview_payload(uploaded_images)
+        return jsonify(response)
+    except Exception as error:
+        print(f'Error building TGS preview: {error}')
+        message = str(error) if app.config['DEBUG'] else 'TGS preview failed. Check server logs.'
         return jsonify({'error': message}), 500
 
 

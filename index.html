@@ -347,9 +347,78 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        .editor-workspace { display: none; padding: 18px; }
+        .editor-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; }
+        .editor-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr); gap: 16px; align-items: start; }
+        .document-panel, .tgs-panel { border: 1px solid var(--color-border); border-radius: 14px; background: #f8fafc; padding: 12px; }
+        .panel-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .panel-title-row h4 { margin: 0; color: var(--color-primary); }
+        .editor-instructions { color: var(--color-muted); font-size: 0.9rem; margin-bottom: 10px; }
+        .document-editor {
+            min-height: 920px;
+            padding: 18px;
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            overflow: auto;
+        }
+        .document-editor:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(211, 145, 40, 0.15);
+        }
+        .document-page { max-width: 900px; margin: 0 auto; font-size: 0.95rem; line-height: 1.6; color: #222; }
+        .document-page h1 { font-size: 2.4rem; font-weight: 800; color: var(--color-primary-strong); margin: 0 0 14px; border: 0; padding: 0; letter-spacing: -0.02em; }
+        .document-page h2 { font-size: 1.5rem; font-weight: 700; color: var(--color-primary-strong); margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #4a90c4; }
+        .document-page h3 { font-size: 1.15rem; font-weight: 700; color: var(--color-primary); margin: 22px 0 8px; }
+        .document-page h4 { font-size: 1rem; font-weight: 600; color: var(--color-primary); margin: 16px 0 6px; }
+        .document-page p { line-height: 1.65; margin: 6px 0; }
+        .document-page ul, .document-page ol { margin: 6px 0 6px 24px; }
+        .document-page li { margin-bottom: 4px; }
+        .doc-cover { padding: 30px 0 24px; margin-bottom: 28px; border-bottom: 3px solid #333; }
+        .doc-cover-header { background: #1a1a1a; color: #fff; padding: 14px 20px; border-radius: 6px 6px 0 0; margin-bottom: 28px; }
+        .doc-cover-header .cover-brand { font-size: 1.6rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+        .doc-cover-header .cover-tagline { font-size: 0.8rem; opacity: 0.75; letter-spacing: 0.12em; text-transform: uppercase; }
+        .doc-cover-title { font-size: 2.8rem; font-weight: 800; color: var(--color-primary-strong); margin: 24px 0 32px; letter-spacing: -0.02em; line-height: 1.15; }
+        .doc-cover-meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 18px 0; }
+        .doc-cover-meta dt { font-weight: 700; color: #444; text-transform: uppercase; font-size: 0.82rem; letter-spacing: 0.04em; }
+        .doc-cover-meta dd { margin: 0; font-weight: 600; color: #111; }
+        .doc-cover-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 18px; font-size: 0.9rem; }
+        .doc-cover-footer span { font-weight: 700; color: #333; }
+        .doc-section-break { border: 0; border-top: 1px solid #ccc; margin: 28px 0; }
+        .doc-table-caption { font-style: italic; color: #555; font-size: 0.88rem; margin: 10px 0 4px; }
+        .editor-table { width: 100%; border-collapse: collapse; margin: 6px 0 16px; }
+        .editor-table th, .editor-table td { border: 1px solid #b8c8d8; padding: 7px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+        .editor-table th { background: #4a7ea8; color: #fff; font-weight: 600; font-size: 0.85rem; }
+        .editor-table td { background: #fff; }
+        .editor-table tr:nth-child(even) td { background: #f5f8fb; }
+        .doc-boilerplate { color: #444; }
+        .doc-placeholder { background: #fffbe6; border: 1px dashed #d4b64a; border-radius: 6px; padding: 10px 14px; margin: 10px 0; color: #7a5c00; font-style: italic; font-size: 0.9rem; }
+        .toc-list { columns: 2; column-gap: 32px; margin: 10px 0; }
+        .toc-list li { break-inside: avoid; margin-bottom: 6px; }
+        .tgs-library-grid { display: flex; flex-direction: column; gap: 12px; max-height: 950px; overflow: auto; }
+        .tgs-card { border: 1px solid var(--color-border); border-radius: 12px; background: white; padding: 10px; box-shadow: 0 8px 18px rgba(15, 34, 53, 0.05); }
+        .tgs-card-tag { display: inline-block; margin-bottom: 8px; background: var(--color-accent-soft); color: #7a4d00; padding: 5px 8px; border-radius: 999px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
+        .tgs-card img { width: 100%; border-radius: 10px; border: 1px solid var(--color-border); background: #fff; }
+        .tgs-card-actions { margin-top: 8px; }
+        .insert-tgs-button { width: 100%; }
+        .tgs-figure { border: 1px solid #d7e0ea; border-radius: 12px; padding: 10px; margin: 12px 0; background: #fbfdff; }
+        .tgs-figure img { width: 100%; max-width: 540px; display: block; margin: 8px auto; border: 1px solid #d7e0ea; border-radius: 10px; }
+        .tgs-drop-hint { padding: 12px; border: 1px dashed #c8d4e1; border-radius: 10px; color: var(--color-muted); background: #fbfdff; }
+
+        @media print {
+            body { background: #fff; }
+            .document-page { max-width: none; font-size: 11pt; }
+            .doc-cover { page-break-after: always; }
+            .editor-table, .tgs-figure, .doc-placeholder { page-break-inside: avoid; }
+        }
+
         @media (max-width: 1100px) {
             .app-shell { grid-template-columns: 1fr; }
             .sidebar { position: static; }
+            .editor-layout { grid-template-columns: 1fr; }
+            .document-editor { min-height: 620px; }
+            .toc-list { columns: 1; }
         }
 
         @media (max-width: 700px) {
@@ -391,6 +460,7 @@
             <div class="brand-eyebrow">Crompton Concepts</div>
             <h1>CTMP / TMP Generator</h1>
             <p>Professional traffic management documentation for civil, infrastructure, and construction staging workflows.</p>
+            <div style="margin-top: 12px; display: inline-block; padding: 6px 12px; background: #fff4df; color: #7a4d00; border: 1px solid rgba(211, 145, 40, 0.55); border-radius: 999px; font-size: 0.85rem; font-weight: 700;">Under development • Beta use only</div>
         </div>
 
         <form id="ctmpForm">
@@ -806,9 +876,47 @@
 
         <div class="action-row">
             <button type="button" class="ghost-button" onclick="fillDummyData()">🧪 Fill Test Data</button>
-            <button type="button" class="primary-button" onclick="generateReport()">🚀 Generate CTMP Document</button>
+            <button type="button" class="primary-button" onclick="generateReport()">� Open In-Page Editor</button>
         </div>
     </form>
+
+    <section class="form-section editor-workspace" id="editorWorkspace">
+        <div class="editor-toolbar">
+            <div>
+                <div class="brand-eyebrow">In-page editing</div>
+                <h3 style="margin: 4px 0 6px;">TMP document editor</h3>
+                <div class="editor-instructions">Edit the full draft on the left, then drag or insert the required TGS sheet from the right.</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="mini-button" onclick="saveEditorAsWord()">💾 Save as Word</button>
+                <button type="button" class="mini-button" onclick="saveEditorAsPdf()">🖨️ Save as PDF</button>
+                <button type="button" class="ghost-button" onclick="document.getElementById('ctmpForm').scrollIntoView({ behavior: 'smooth', block: 'start' })">← Back to form</button>
+            </div>
+        </div>
+        <div class="editor-layout">
+            <section class="document-panel">
+                <div class="panel-title-row">
+                    <h4>Whole document</h4>
+                    <span class="reference-badge" id="editorStatusBadge">Draft ready</span>
+                </div>
+                <div class="editor-instructions">Click anywhere in the draft and keep typing. TGS cards can be inserted at the cursor position.</div>
+                <div id="documentEditor" class="document-editor" contenteditable="true"></div>
+            </section>
+            <aside class="tgs-panel">
+                <div class="panel-title-row">
+                    <h4>TGS image library</h4>
+                    <span class="summary-chip" id="tgsLibraryCount">0 loaded</span>
+                </div>
+                <div class="editor-instructions">Each sheet shows its detected TGS number so it can be picked quickly.</div>
+                <div id="tgsLibraryGrid" class="tgs-library-grid">
+                    <div class="reference-card">
+                        <div class="reference-card-title">No TGS loaded yet</div>
+                        <div class="field-note">Upload and analyse the PDF, then open the editor to populate this panel.</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </section>
     </main>
 </div>
 
@@ -842,7 +950,14 @@
     const restoreBannerText = document.getElementById('restoreBannerText');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingStatus = document.getElementById('loadingStatus');
+    const editorWorkspace = document.getElementById('editorWorkspace');
+    const documentEditor = document.getElementById('documentEditor');
+    const tgsLibraryGrid = document.getElementById('tgsLibraryGrid');
+    const tgsLibraryCount = document.getElementById('tgsLibraryCount');
+    const editorStatusBadge = document.getElementById('editorStatusBadge');
     const DRAFT_STORAGE_KEY = 'ctmp-generator-draft-v2';
+    let currentTgsPreviewPages = [];
+    let savedSelectionRange = null;
 
     function apiUrl(path) {
         return `${API_BASE}${path}`;
@@ -1170,6 +1285,8 @@
         const file = tgsPdfInput?.files?.[0];
         if (!file) {
             uploadMeta.textContent = 'No file selected yet.';
+            currentTgsPreviewPages = [];
+            renderTgsLibrary([]);
             updateSectionStatuses();
             return;
         }
@@ -1178,6 +1295,605 @@
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
         uploadMeta.textContent = `${file.name} • ${sizeMb} MB${pageCount ? ` • approx. ${pageCount} pages` : ''}`;
         updateSectionStatuses();
+    }
+
+    function asArray(value) {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value == null || value === '') return [];
+        return [value];
+    }
+
+    function collectFormValues() {
+        syncAllDynamicEditors();
+        const formData = new FormData(formElement);
+        const payload = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File) continue;
+            if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                payload[key] = Array.isArray(payload[key]) ? [...payload[key], value] : [payload[key], value];
+            } else {
+                payload[key] = value;
+            }
+        }
+
+        return payload;
+    }
+
+    function rowsFromPipeText(raw) {
+        return String(raw || '')
+            .split(/\r?\n/)
+            .map(line => line.split('|').map(part => part.trim()).filter(Boolean))
+            .filter(parts => parts.length);
+    }
+
+    function renderDocumentTable(headers, rows, emptyMessage = 'No entries added yet.') {
+        if (!rows.length) {
+            return `<p>${escapeHtml(emptyMessage)}</p>`;
+        }
+
+        return `
+            <table class="editor-table">
+                <thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
+                <tbody>
+                    ${rows.map(row => `<tr>${headers.map((_, index) => `<td>${escapeHtml(row[index] || '')}</td>`).join('')}</tr>`).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function buildDocumentHtml(payload) {
+        const stages = asArray(payload.stages);
+        const projectName = payload.projectName || 'Project title to be confirmed';
+        const location = payload.projectLocation || 'Site location to be confirmed';
+        const client = payload.clientCompany || 'Client to be confirmed';
+        const docRef = documentReferencePreview.value.trim() || 'TMP draft reference pending';
+        const revNum = payload.revisionNumber || '0';
+        const authorName = payload.authorName || 'Author Name';
+        const authorPosition = payload.authorPosition || 'Traffic Technician';
+        const authorDate = payload.authorDate || new Date().toLocaleDateString('en-AU');
+        const reviewerName = payload.reviewerName || 'Reviewer Name';
+        const reviewerOP = payload.reviewerOP || 'OP';
+        const lga = payload.localGovernmentArea || 'Local Government Area';
+        const scopeOfWork = payload.scopeOfWork || 'Scope of works to be confirmed.';
+        const projectDesc = payload.projectDescription || 'Project description to be confirmed.';
+        const constructionActivity = payload.constructionActivity || '';
+        const stageText = stages.length ? stages.join(', ') : 'General construction works';
+        const trafficNotes = payload.trafficManagementNotes || '';
+        const tgsRef = payload.tgsReference || '';
+        const tgsNum = payload.tgsNumber || '';
+        const startDate = payload.startDate || 'TBC';
+        const endDate = payload.endDate || 'TBC';
+        const duration = payload.duration || 'TBC';
+        const tmrCert = payload.tmrCert82Number || '';
+        const lotParcel = payload.lotParcelNumber || '';
+        const devType = payload.developmentType || '';
+        const floors = payload.numberOfFloors || '';
+        const tcCompany = payload.trafficControlCompany || '';
+
+        const prepRows = rowsFromPipeText(payload.documentPreparation);
+        const revisionRows = rowsFromPipeText(payload.revisionHistory);
+        const distRows = rowsFromPipeText(payload.distributionList);
+        const changeRows = rowsFromPipeText(payload.changeLog);
+        const badgeRows = rowsFromPipeText(payload.badgeContacts);
+        const tmConsultRows = rowsFromPipeText(payload.tmConsultants);
+        const authorityRows = rowsFromPipeText(payload.authorityContacts);
+        const dtmrRows = rowsFromPipeText(payload.dtmrContacts);
+        const emergencyRows = rowsFromPipeText(payload.emergencyContacts);
+        const tcRows = rowsFromPipeText(payload.trafficControlContacts);
+
+        const e = escapeHtml;
+        const nl2br = (text) => e(text || '').replace(/\\n/g, '<br>');
+
+        return `
+            <div class="document-page">
+
+                <!-- ===== COVER PAGE ===== -->
+                <div class="doc-cover">
+                    <div class="doc-cover-header">
+                        <div class="cover-brand">CROMPTON.</div>
+                        <div class="cover-tagline">Deliberately Different</div>
+                    </div>
+                    <div class="doc-cover-title">TRAFFIC<br>MANAGEMENT<br>PLAN</div>
+                    <h3 style="margin-top: 24px;">${e(docRef)}</h3>
+                    <dl class="doc-cover-meta">
+                        <dt>PROJECT:</dt><dd>${e(projectName)}</dd>
+                        <dt>SCOPE OF WORKS:</dt><dd>${e(scopeOfWork)}</dd>
+                        <dt>LOCATION:</dt><dd>${e(location)}</dd>
+                        <dt>PREPARED FOR</dt><dd>${e(client)}</dd>
+                    </dl>
+                    <div class="doc-cover-footer">
+                        <span>DATE: ${e(authorDate)}</span>
+                        <span>AUTHOR: ${e(authorName)}</span>
+                        <span>REVISION: ${e(revNum)}</span>
+                        ${tmrCert ? `<span>TMR CERT82: ${e(tmrCert)}</span>` : ''}
+                    </div>
+                </div>
+
+                <hr class="doc-section-break">
+
+                <h2>Contents</h2>
+                <ol class="toc-list">
+                    <li>1. Approval, Revision and Distribution</li>
+                    <li>2. Introduction</li>
+                    <li>3. Risk Assessment</li>
+                    <li>4. Project Site Representatives</li>
+                    <li>5. Project Hierarchy</li>
+                    <li>6. Site &amp; Construction Summary</li>
+                    <li>7. Affected Road Infrastructure</li>
+                    <li>8. Traffic Management Methodology</li>
+                    <li>9. Traffic Management Standards &amp; Administration</li>
+                    <li>10. Incident &amp; Near Miss Procedure</li>
+                    <li>11. Special Traffic Requests</li>
+                    <li>Appendix A – General Community &amp; Services</li>
+                    <li>Appendix B – Traffic Guidance Scheme</li>
+                </ol>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 1. APPROVAL, REVISION AND DISTRIBUTION ===== -->
+                <h2>1. Approval, Revision and Distribution</h2>
+
+                <h3>1.1 Approvals</h3>
+                <p class="doc-boilerplate">The Signatures below certify that this TMP has been reviewed and accepted and demonstrates that they are all aware of all the requirements contained herein and are committed to ensuring their provision.</p>
+                <p class="doc-table-caption">Table 1: Document Preparation</p>
+                ${renderDocumentTable(['', 'Name', 'Signature', 'Position', 'Date'],
+                    prepRows.length ? prepRows : [
+                        ['Prepared By', e(authorName), '', e(authorPosition), e(authorDate)],
+                        ['Reviewed By', e(reviewerName), '', 'TMD (' + e(reviewerOP) + ')', e(authorDate)]
+                    ])}
+
+                <h3>1.2 Revision</h3>
+                <p class="doc-table-caption">Table 2: Document Revision History</p>
+                ${renderDocumentTable(['Version No.', 'New Document', 'Revision', 'Modified', 'Date'], revisionRows, 'Add revision history rows in the form.')}
+
+                <h3>1.3 Distribution</h3>
+                <p class="doc-table-caption">Table 3: Document Distribution</p>
+                ${renderDocumentTable(['Name', 'Company', 'Position', 'Copy No.', 'Date'], distRows, 'Add distribution list entries in the form.')}
+
+                <h3>1.4 Change Log</h3>
+                <p class="doc-table-caption">Table 4: Change Log</p>
+                ${renderDocumentTable(['Amendment', 'Section', 'Date'], changeRows, 'Add change log entries in the form.')}
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 2. INTRODUCTION ===== -->
+                <h2>2. Introduction</h2>
+                <h3>2.1 Purpose of the TMP</h3>
+                <p class="doc-boilerplate">This Traffic Management Plan specifies the traffic control measures and devices to be used to warn, instruct and guide road users in the safe negotiation of work sites on roads around the construction site including footpaths, shared paths and bicycle paths adjacent to the roadway.</p>
+                <p class="doc-boilerplate">This TMP formulates the basis of the traffic guidance schemes required for this project which cause interference or obstruction to the normal use of a road by any road user.</p>
+
+                <h3>2.2 Objectives of the TMP</h3>
+                <ul class="doc-boilerplate">
+                    <li>Provide safe and efficient movement for vehicles, pedestrians and cyclists</li>
+                    <li>Reduce the impact of construction activities on the surrounding road network</li>
+                    <li>Ensure the works are undertaken in accordance with approved standards and stakeholder conditions</li>
+                    <li>Document staging, control measures, responsibilities and emergency response processes</li>
+                </ul>
+
+                <h3>2.3 Statement of Duty of Care</h3>
+                <p class="doc-boilerplate">All project personnel have a duty of care to protect workers, road users, vulnerable users and the public. The TMP and accompanying TGS have been developed in accordance with:</p>
+                <ul class="doc-boilerplate">
+                    <li>Manual of Uniform Traffic Control Devices (MUTCD) Part 3</li>
+                    <li>Queensland Guide to Temporary Traffic Management (QGTTM)</li>
+                    <li>Transport and Main Roads Specifications MRTS02-1</li>
+                    <li>Traffic Controller Accreditation Scheme Approved Procedure (TCASAP)</li>
+                </ul>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 3. RISK ASSESSMENT ===== -->
+                <h2>3. Risk Assessment</h2>
+                <h3>3.1 Future Risk Considerations</h3>
+                <p class="doc-boilerplate">Risk management on this construction site entails the identification and analysis of all safety risks likely to arise during works on and around the road including the setting up, operating, changing and ultimate dismantling of a traffic guidance scheme, followed by the determination of appropriate measures to mitigate those risks.</p>
+
+                <h3>3.2 Hierarchy of Safety Controls</h3>
+                <p class="doc-boilerplate">Where hazards are identified, controls are to be applied in accordance with the hierarchy of controls, including elimination, substitution, engineering controls, administrative controls and PPE as a final measure.</p>
+
+                <h3>3.3 Risk Analysis Process</h3>
+                <ul class="doc-boilerplate">
+                    <li>When preparing the required safety plan</li>
+                    <li>On-site risk identification during daily pre-start briefings</li>
+                    <li>When responding to an incident or near miss</li>
+                    <li>When temporary traffic management is modified or changed</li>
+                </ul>
+
+                <h3>3.4 Environmental Risks</h3>
+                <p class="doc-boilerplate">Environmental considerations include dust, noise, vibration, erosion, wet weather, and runoff controls. Temporary traffic arrangements are to account for these conditions at all times.</p>
+
+                <h3>3.5 Conflict with Existing Signage</h3>
+                <p class="doc-boilerplate">Any existing signage that conflicts with the temporary traffic layout must be covered, removed from view, or otherwise addressed in accordance with the approved TGS and site requirements.</p>
+
+                <h3>3.6 Coordination with Nearby Worksites</h3>
+                <p class="doc-boilerplate">The Site Supervisor and Nominated Traffic Officer are to coordinate traffic management with any adjacent worksites to minimise competing controls, excessive queueing, and driver confusion.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 4. PROJECT SITE REPRESENTATIVES ===== -->
+                <h2>4. Project Site Representatives</h2>
+
+                <p class="doc-table-caption">Table 5: ${e(client)} Project Contacts</p>
+                ${renderDocumentTable(['Name', 'Position', 'Phone', 'Email'],
+                    badgeRows.length ? badgeRows : [
+                        [payload.pmName || '', 'Project Manager', payload.pmPhone || '', payload.pmEmail || ''],
+                        [payload.smName || '', 'Site Manager', payload.smPhone || '', payload.smEmail || ''],
+                        [payload.woName || '', 'Site Supervisor', payload.woPhone || '', payload.woEmail || '']
+                    ])}
+
+                <p class="doc-table-caption">Table 6: Traffic Management Consultants</p>
+                ${renderDocumentTable(['Name', 'Position', 'Phone', 'Email'],
+                    tmConsultRows.length ? tmConsultRows : [
+                        [e(authorName), e(authorPosition), '(07) 3187 8940', 'operations@cromptonconcepts.com.au']
+                    ])}
+
+                <p class="doc-table-caption">Table 7: ${e(lga)} - Contact</p>
+                ${renderDocumentTable(['Department', 'Position', 'Phone', 'Email'],
+                    authorityRows.length ? authorityRows : [
+                        [payload.councilDept || 'Traffic and Transport', payload.councilOfficer || 'Assessing Officer', payload.councilPhone || '', payload.councilEmail || '']
+                    ])}
+
+                <p class="doc-table-caption">Table 8: Nominated Traffic Officer (Nominated Traffic Management Company – Crompton Concepts Pty Ltd)</p>
+                ${renderDocumentTable(['Name', 'Position', 'TMR TMD#', 'Phone', 'Email'], [
+                    [payload.ntoName || '', payload.ntoPosition || 'TMD', payload.ntoTmdNumber || payload.ntoOpNumber || '', payload.ntoPhone || '', payload.ntoEmail || '']
+                ])}
+
+                <p class="doc-table-caption">Table 9: Project Emergency Contact</p>
+                ${renderDocumentTable(['Name', 'Position', 'Phone'], emergencyRows, 'Add emergency contacts in the form.')}
+
+                <p class="doc-table-caption">Table 10: Traffic Control Provider</p>
+                ${renderDocumentTable(['Name', 'Position', 'Phone'], tcRows.length ? tcRows : [
+                    [payload.tcProviderName || 'TBA', 'Traffic Control Provider', payload.tcProviderPhone || 'TBA']
+                ])}
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 5. PROJECT HIERARCHY ===== -->
+                <h2>5. Project Hierarchy</h2>
+                <h3>5.1 Responsibilities and Obligations</h3>
+                <p class="doc-boilerplate">The Traffic Management general responsibilities include the following:</p>
+                <ul class="doc-boilerplate">
+                    <li>Monitor queue lengths and make changes to hold &amp; release arrangements to minimise disruption and delays to the travelling public where possible</li>
+                    <li>Produce Traffic Guidance Schemes detailing the manner in which traffic management measures will be applied</li>
+                    <li>Monitor the safety and effectiveness of each TGS and respond to changing conditions</li>
+                    <li>Implement all monitoring and reporting requirements of this TMP</li>
+                </ul>
+
+                <h4>5.1.1 Project Manager</h4>
+                <p class="doc-boilerplate">The Project Manager's key responsibilities include overall management of TMP compliance, liaison with council/TMR, and ensuring traffic management provisions are adequately resourced.</p>
+
+                <h4>5.1.2 Site Supervisor</h4>
+                <p class="doc-boilerplate">The Site Supervisor's key responsibilities include implementation and monitoring of TMP requirements, liaison with stakeholders on corrective actions, and reporting of observed inadequacies.</p>
+
+                <h4>5.1.3 Traffic Management Designer (TMD)</h4>
+                <p class="doc-boilerplate">Crompton Concepts is the nominated TMD for the project. The TMD is responsible for design and review of TGS, ensuring compliance with MUTCD Part 3, QGTTM, and MRTS02-1.</p>
+
+                <h4>5.1.4 Traffic Controller / TMI</h4>
+                <p class="doc-boilerplate">Traffic controllers must hold a current Traffic Controller accreditation, implement TGS as designed, and maintain a responsible attitude towards traffic management at all times.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 6. SITE & CONSTRUCTION SUMMARY ===== -->
+                <h2>6. Site &amp; Construction Summary</h2>
+
+                <h3>6.1 Site Location</h3>
+                <p>The proposed site is located at ${e(location)}${lotParcel ? ', more formally described as ' + e(lotParcel) : ''}.</p>
+                ${devType ? `<p><strong>Development type:</strong> ${e(devType)}${floors ? ', ' + e(floors) : ''}</p>` : ''}
+                <p>${e(client)} have been contracted for ${e(stageText.toLowerCase())}.</p>
+                <div class="doc-placeholder">Figure 1: Site Location — Insert a site location map here (screenshot from Google Maps or similar).</div>
+
+                <h3>6.2 Specific Restrictions and Limitations</h3>
+                <p class="doc-boilerplate">Restrictions applied to this project as follows:</p>
+                <ul>
+                    <li>Days: Monday to Friday 6:30 am to 6:30 pm and Saturday as required, excluding public holidays, unless otherwise approved</li>
+                    <li>No work on a public holiday, special holiday or bank holiday</li>
+                </ul>
+
+                <h3>6.3 Plant Requirements</h3>
+                <p class="doc-table-caption">Table 11: Plant &amp; Equipment</p>
+                <div class="doc-placeholder">Adjust the plant and equipment list relevant to this project (e.g. Excavator, Piling Rig, HV Vehicles, LV vehicles).</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 7. AFFECTED ROAD INFRASTRUCTURE ===== -->
+                <h2>7. Affected Road Infrastructure</h2>
+                <p class="doc-boilerplate">Refer to Appendix A for general community information. The below sections discuss the affected road infrastructure. Further details of the temporary traffic management implemented during each stage of the construction are discussed in Section 8.</p>
+
+                <h3>7.1 Existing Road Features</h3>
+                <p class="doc-table-caption">Table 12: Existing Road Features</p>
+                <div class="doc-placeholder">Insert a table of existing road features (road name, speed, lanes, median type, kerb type, footpath, bus stop, parking).</div>
+
+                <h3>7.2 Footpath - Pedestrians and Cyclists</h3>
+                <p class="doc-boilerplate">Pedestrian and cyclist movements are to be maintained in a safe and logical manner at all times. Where footpath closures are required, clear signed detours and accessible routes must be provided.</p>
+                <div class="doc-placeholder">Insert pedestrian management figures and discussion here. Use the TGS panel to insert relevant pedestrian arrangement drawings.</div>
+
+                <h3>7.3 Speed of Choice</h3>
+                <p class="doc-boilerplate">Temporary speed zoning is to reflect the site conditions, work exposure, available lane width, and the operating environment in accordance with QGTTM and approval conditions.</p>
+
+                <h3>7.4 Roadway - Vehicular Traffic and Cyclists</h3>
+                <p class="doc-boilerplate">Vehicular traffic and on-road cyclists are to be managed using the approved staging and TGS layouts, ensuring adequate delineation, warning, and lane control through the worksite.</p>
+
+                <h3>7.5 After Hours Building Application</h3>
+                <p class="doc-boilerplate">Any after-hours traffic arrangements must be specifically approved and are to include lighting, signage maintenance, and reduced impact on nearby residents where possible.</p>
+
+                <h3>7.6 National Heavy Vehicle Regulator</h3>
+                <p class="doc-boilerplate">Where heavy vehicle movements are expected, access routes and controls must be reviewed for NHVR compliance and any route restrictions considered prior to implementation.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 8. TRAFFIC MANAGEMENT METHODOLOGY ===== -->
+                <h2>8. Traffic Management Methodology</h2>
+
+                <h3>8.1 Site Preparation</h3>
+                <h4>8.1.1 Site Layout Overview</h4>
+                <p class="doc-boilerplate">The worksite layout must support safe access, egress, storage, and plant operation while protecting road users and adjacent properties.</p>
+                <h4>8.1.2 Workzone Overview</h4>
+                <p class="doc-boilerplate">Traffic management devices are to be installed to establish an appropriate advance warning area, transition area, work area and termination area.</p>
+                <h4>8.1.3 Long-term Signage Overview</h4>
+                <p class="doc-boilerplate">Any long-term signage must be inspected regularly and maintained in good condition throughout the duration of the works.</p>
+
+                <h3>8.2 Options Analysis</h3>
+                <p class="doc-boilerplate">The options considered are based on the planning information regarding the impact to road users analysed in Appendix A (General Community and Services).</p>
+                <p class="doc-table-caption">Table 13: Options Analysis - Vehicular Road Users</p>
+                <div class="doc-placeholder">Insert Options Analysis table for vehicular traffic (Sidetrack, Detour, Contra Flow, Traffic through worksite, Traffic past worksite).</div>
+                <p class="doc-table-caption">Table 14: Options Analysis - Vulnerable Road Users</p>
+                <div class="doc-placeholder">Insert Options Analysis table for pedestrians and cyclists.</div>
+
+                <h3>8.3 ${e(projectName)}</h3>
+                <p>${nl2br(projectDesc)}</p>
+                ${constructionActivity ? `<p><strong>Construction methodology:</strong> ${nl2br(constructionActivity)}</p>` : ''}
+
+                <h3>8.4 Works Procedure</h3>
+                <h4>8.4.1 Construction Noise/Vibration</h4>
+                <p class="doc-boilerplate">Construction plant and activities are to comply with approved hours and all applicable noise and vibration limits. Excessive impacts are to be managed via site controls and operational adjustments.</p>
+                <h4>8.4.2 Dust/Waste Management</h4>
+                <p class="doc-boilerplate">Dust suppression, spoil containment, site cleanliness and lawful waste disposal are to be maintained for the duration of the project.</p>
+                <h4>8.4.3 Transport and Haulage Requirements</h4>
+                <p class="doc-boilerplate">Haulage activities are to use approved routes where required and are to avoid unnecessary impacts to sensitive land uses and peak periods.</p>
+
+                <h3>8.5 Traffic Volume Estimation &amp; Traffic Impact Analysis</h3>
+                <div class="doc-placeholder">Insert AADT table, traffic impact analysis table, and queue length estimation. Use the data source selected in the form (${e(payload.dataSource || 'hourly_profile')}).</div>
+
+                <h3>8.6 TTM Implementation</h3>
+                ${stages.length ? stages.map((stage, i) => `
+                    <h4>8.6.${i + 1} ${e(stage)}</h4>
+                    <p>${e(stage)} works are programmed as part of the ${e(stageText)} construction activities.</p>
+                    ${trafficNotes ? `<p>${nl2br(trafficNotes)}</p>` : ''}
+                    <div class="doc-placeholder">Insert the TGS figure for "${e(stage)}" from the right panel — drag or use the "Insert at cursor" button. Add site-active and aftercare figures.</div>
+                `).join('') : `
+                    <p>No specific staging has been selected. Define the stages in Section 7 of the form.</p>
+                `}
+                ${tgsRef ? `<p><strong>TGS Reference:</strong> ${e(tgsRef)} &nbsp; <strong>TGS Number:</strong> ${e(tgsNum || 'N/A')}</p>` : ''}
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 9. TRAFFIC MANAGEMENT STANDARDS ===== -->
+                <h2>9. Traffic Management Standards &amp; Administration</h2>
+
+                <h3>9.1 Clothing</h3>
+                <p class="doc-boilerplate">This standard specifies the clothing that must be worn by an accredited traffic controller while performing "traffic control functions" in Queensland in conjunction with the Traffic Controller Accreditation Scheme Approved Procedure (TCASAP).</p>
+
+                <h3>9.2 Site Documentation and Reports</h3>
+                <p class="doc-boilerplate">The following documents must be available at the worksite at all times: a copy of this TMP, all TGS, daily site diary, and incident report forms.</p>
+
+                <h3>9.3 Periods of Darkness</h3>
+                <p class="doc-boilerplate">If works extend into periods of darkness, all signs, devices, and delineation must be appropriately retro-reflectorised or illuminated in accordance with QGTTM requirements.</p>
+
+                <h3>9.4 Fatigue Management</h3>
+                <p class="doc-boilerplate">Traffic controllers shall be relieved from their duty after not more than 2 hours for a period of rest or "other duties" of at least 15 minutes. [TCASAP 2.4]</p>
+
+                <h3>9.5 Signage</h3>
+                <p class="doc-boilerplate">The signage must be installed when works are actively on the road or as per the approved TGS. Signs and devices which become redundant must be removed, covered, or turned from view.</p>
+                <h4>9.5.1 Condition of long-term signs</h4>
+                <p class="doc-boilerplate">All long-term signs are to remain legible, correctly oriented and clean. Damaged or ineffective signs are to be replaced immediately.</p>
+                <h4>9.5.2 Positioning of signs</h4>
+                <p class="doc-boilerplate">The position of signs and devices shall match the approved TGS and be verified during installation and routine inspections.</p>
+                <h4>9.5.3 Layout Variation - Covering signs</h4>
+                <p class="doc-boilerplate">Where the current work arrangement differs from installed signage, redundant signs must be covered or removed until required again.</p>
+
+                <h3>9.6 Daily Routine and Worksite Records</h3>
+                <p class="doc-boilerplate">Daily diaries, pre-start records, inspections and any corrective actions are to be documented and retained as part of the worksite record.</p>
+
+                <h3>9.7 Installation and Removal Process</h3>
+                <p class="doc-boilerplate">The traffic guidance scheme is to be installed and removed in a controlled sequence to protect workers while progressively establishing the required traffic control environment.</p>
+
+                <h3>9.8 Site Inspection Protocols</h3>
+                <p class="doc-boilerplate">The worksite is to be inspected after setup, at regular intervals, after any significant change, and after adverse weather or incidents.</p>
+
+                <h3>9.9 Communication Protocols</h3>
+                <p class="doc-boilerplate">All traffic management staff must maintain clear communication with the Site Supervisor, NTO, construction personnel and emergency responders where relevant.</p>
+
+                <h3>9.10 Registers and Logs</h3>
+                <p class="doc-boilerplate">Registers and logs may include site attendance, controller accreditation, plant movements, incident records and temporary traffic management changes.</p>
+
+                <h3>9.11 TMP Auditing Procedure</h3>
+                <p class="doc-boilerplate">Routine reviews and audits are to verify compliance with this TMP and the approved TGS arrangements.</p>
+
+                <h3>9.12 TMP Review and Continuous Improvement</h3>
+                <p class="doc-boilerplate">The TMP is to be reviewed whenever site conditions change, following incidents, or when better controls are identified through monitoring and consultation.</p>
+
+                <h3>9.13 Submission and Approvals</h3>
+                <p class="doc-boilerplate">Any revision or proposed variation requiring authority review is to be submitted through the relevant approval pathway before implementation.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 10. INCIDENT & NEAR MISS ===== -->
+                <h2>10. Incident &amp; Near Miss Procedure</h2>
+                <p class="doc-boilerplate">Crompton Concepts takes any and every incident or near miss very seriously. Our procedure works in line with the Traffic Controller Accreditation Scheme Approved Procedure 5.0.</p>
+                <h3>10.1 Identification</h3>
+                <p class="doc-boilerplate">An incident is an occurrence that in the opinion of the traffic controller affects the operational safety and/or effectiveness of a traffic controller at a worksite or at roadworks.</p>
+                <h3>10.2 Reporting</h3>
+                <p class="doc-boilerplate">All incidents or near misses must be reported to the Site Supervisor and Crompton Concepts as soon as practicable. The incident report must include time, location, description, persons involved, and actions taken.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== 11. SPECIAL TRAFFIC REQUESTS ===== -->
+                <h2>11. Special Traffic Requests</h2>
+                <h3>11.1 Traffic Requirement Changes</h3>
+                <p class="doc-boilerplate">If the client requirements have changed from the approved TGS, the elected Traffic Management Company will liaise with Crompton Concepts and communicate the required changes necessary. Changes can only be performed by a TMD.</p>
+                <p class="doc-boilerplate">Any new TGS or modification to a TGS must be executed by a TMD. These Traffic Guidance Schemes can be modified to suit the current on-site traffic conditions. Should the client need, the TMD will arrive at the worksite and modify the TGS.</p>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX A ===== -->
+                <h2><em>Appendix A</em> General Community &amp; Services</h2>
+
+                <h3>A.i Public Transport</h3>
+                <div class="doc-placeholder">Describe any affected bus stops or public transport impacts.</div>
+
+                <h3>A.ii Hospitals</h3>
+                <div class="doc-placeholder">List nearest hospitals and describe any anticipated impact.</div>
+
+                <h3>A.iii Schools</h3>
+                <div class="doc-placeholder">List nearby schools and describe any anticipated impact.</div>
+
+                <h3>A.iv Businesses</h3>
+                <div class="doc-placeholder">List nearby businesses and describe any anticipated access impacts.</div>
+
+                <h3>A.v Property Access</h3>
+                <div class="doc-placeholder">Describe property access provisions during construction.</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX B ===== -->
+                <h2><em>Appendix B</em> Traffic Guidance Scheme (TGS)</h2>
+                <p>Insert the full TGS set below. Use the right-hand panel to drag or insert each sheet.</p>
+                <div class="tgs-drop-hint">Drop TGS images here, or place the cursor anywhere in the document and click "Insert at cursor" on a TGS card.</div>
+
+                <hr class="doc-section-break">
+
+                <h2><em>Optional Supporting Appendices</em></h2>
+                <h3>Appendix C – Weather</h3>
+                <div class="doc-placeholder">Add any project-specific heat, storm or inclement weather controls if required by the site.</div>
+
+                <h3>Appendix D – Acceptable Traffic Impacts / L.O.S.</h3>
+                <div class="doc-placeholder">Add queue length estimation, LOS commentary and traffic impact acceptance notes where applicable.</div>
+
+            </div>
+        `;
+    }
+
+    function renderTgsLibrary(pages) {
+        tgsLibraryCount.textContent = `${pages.length} loaded`;
+
+        if (!pages.length) {
+            tgsLibraryGrid.innerHTML = `
+                <div class="reference-card">
+                    <div class="reference-card-title">No TGS loaded yet</div>
+                    <div class="field-note">Upload a TGS PDF and open the editor to preview each sheet here.</div>
+                </div>
+            `;
+            return;
+        }
+
+        tgsLibraryGrid.innerHTML = pages.map(page => `
+            <div class="tgs-card" draggable="true" data-page-id="${escapeHtml(page.id)}">
+                <div class="tgs-card-tag">${escapeHtml(page.label || `TGS Page ${page.pageNumber}`)}</div>
+                <img src="${page.imageUrl}" alt="${escapeHtml(page.label || 'TGS sheet')}" />
+                <div class="field-note" style="margin-top: 6px;">${escapeHtml(page.subtitle || `Page ${page.pageNumber}`)}</div>
+                <div class="tgs-card-actions">
+                    <button type="button" class="mini-button insert-tgs-button" data-page-id="${escapeHtml(page.id)}">Insert at cursor</button>
+                </div>
+            </div>
+        `).join('');
+
+        tgsLibraryGrid.querySelectorAll('.insert-tgs-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const page = currentTgsPreviewPages.find(item => item.id === button.dataset.pageId);
+                if (page) {
+                    insertTgsIntoEditor(page);
+                }
+            });
+        });
+
+        tgsLibraryGrid.querySelectorAll('.tgs-card').forEach(card => {
+            card.addEventListener('dragstart', event => {
+                const page = currentTgsPreviewPages.find(item => item.id === card.dataset.pageId);
+                if (!page) return;
+                event.dataTransfer.setData('application/json', JSON.stringify(page));
+                event.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+    }
+
+    function rememberEditorSelection() {
+        const selection = window.getSelection();
+        if (!selection || !selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        if (documentEditor.contains(range.startContainer)) {
+            savedSelectionRange = range.cloneRange();
+        }
+    }
+
+    function insertNodeAtSelection(node) {
+        documentEditor.focus();
+        const selection = window.getSelection();
+        let range = savedSelectionRange;
+
+        if (!range || !documentEditor.contains(range.startContainer)) {
+            range = document.createRange();
+            range.selectNodeContents(documentEditor);
+            range.collapse(false);
+        }
+
+        range.deleteContents();
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        savedSelectionRange = range.cloneRange();
+    }
+
+    function insertTgsIntoEditor(page) {
+        const wrapper = document.createElement('figure');
+        wrapper.className = 'tgs-figure';
+        wrapper.contentEditable = 'false';
+        wrapper.innerHTML = `
+            <figcaption><strong>${escapeHtml(page.label || `TGS Page ${page.pageNumber}`)}</strong>${page.subtitle ? ` — ${escapeHtml(page.subtitle)}` : ''}</figcaption>
+            <img src="${page.imageUrl}" alt="${escapeHtml(page.label || 'TGS sheet')}" />
+        `;
+
+        insertNodeAtSelection(wrapper);
+        editorStatusBadge.textContent = 'TGS inserted';
+    }
+
+    async function loadTgsPreviewLibrary() {
+        const file = tgsPdfInput?.files?.[0];
+        if (!file) {
+            currentTgsPreviewPages = [];
+            renderTgsLibrary([]);
+            return;
+        }
+
+        tgsLibraryCount.textContent = 'Loading...';
+        const formData = new FormData();
+        formData.append('tgsPdf', file);
+
+        try {
+            const response = await fetch(apiUrl('/api/tgs-preview'), {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Could not load TGS preview pages');
+            }
+
+            const data = await response.json();
+            currentTgsPreviewPages = data.pages || [];
+            renderTgsLibrary(currentTgsPreviewPages);
+        } catch (error) {
+            console.error('Error loading TGS preview pages:', error);
+            currentTgsPreviewPages = [];
+            renderTgsLibrary([]);
+            tgsLibraryGrid.innerHTML = `
+                <div class="reference-card">
+                    <div class="reference-card-title">TGS preview unavailable</div>
+                    <div class="field-note">${escapeHtml(error.message || 'Unable to load TGS preview pages.')}</div>
+                </div>
+            `;
+        }
     }
 
     function applySuggestedStages(stages) {
@@ -1492,7 +2208,7 @@
 
         updateSectionStatuses();
         console.log("Dummy data populated.");
-        alert("Test data filled! Please upload the TGS PDF set, then click Generate.");
+        alert("Test data filled. Please upload the TGS PDF set, then open the in-page editor.");
     }
 
     async function loadTemplateParameters() {
@@ -1535,45 +2251,118 @@
         }
 
         saveDraftToLocalStorage();
-        const formData = new FormData(formElement);
+        const payload = collectFormValues();
         const progressTimer = startLoadingSequence();
 
         try {
-            const response = await fetch(apiUrl('/api/generate-ctmp'), {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Document generation failed.');
-            }
-
-            loadingStatus.textContent = 'Preparing download…';
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-
-            const pName = formData.get('projectName') || 'Project';
-            a.download = String(pName).replace(/\s+/g, '_') + '_CTMP.docx';
-
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            loadingStatus.textContent = 'Preparing in-page editor…';
+            documentEditor.innerHTML = buildDocumentHtml(payload);
+            editorWorkspace.style.display = 'block';
+            editorStatusBadge.textContent = 'Draft ready';
+            await loadTgsPreviewLibrary();
             hideValidationSummary();
+            editorWorkspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) {
-            console.error('Error generating report:', error);
-            showValidationSummary([error.message || 'Document generation failed.']);
+            console.error('Error preparing in-page editor:', error);
+            showValidationSummary([error.message || 'Could not open the in-page editor.']);
         } finally {
             window.clearInterval(progressTimer);
             setLoadingState(false);
         }
     }
 
+    function getEditorExportFilename(extension) {
+        const projectName = (document.getElementById('projectName')?.value || 'CTMP').trim();
+        return projectName.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') + extension;
+    }
+
+    function buildEditorExportHtml() {
+        const title = escapeHtml(documentReferencePreview.value.trim() || 'Traffic Management Plan');
+        const styles = Array.from(document.querySelectorAll('style')).map(style => style.innerHTML).join('\n');
+        return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<style>
+${styles}
+body { background: #fff; padding: 18px; }
+.editor-workspace, .editor-toolbar, .tgs-panel, .panel-title-row, .editor-instructions { display: none !important; }
+.document-panel { border: 0; padding: 0; background: #fff; }
+.document-editor { border: 0; box-shadow: none; padding: 0; min-height: auto; }
+</style>
+</head>
+<body>
+${documentEditor.innerHTML}
+</body>
+</html>`;
+    }
+
+    function saveEditorAsWord() {
+        if (!documentEditor.innerHTML.trim()) {
+            alert('Open the in-page editor first.');
+            return;
+        }
+
+        const blob = new Blob(['\ufeff', buildEditorExportHtml()], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = getEditorExportFilename('.doc');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        editorStatusBadge.textContent = 'Word file saved';
+    }
+
+    function saveEditorAsPdf() {
+        if (!documentEditor.innerHTML.trim()) {
+            alert('Open the in-page editor first.');
+            return;
+        }
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Please allow pop-ups to save as PDF.');
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(buildEditorExportHtml());
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+        }, 250);
+        editorStatusBadge.textContent = 'PDF export opened';
+    }
+
     window.setInterval(saveDraftToLocalStorage, 30000);
     window.addEventListener('beforeunload', saveDraftToLocalStorage);
+
+    if (documentEditor) {
+        ['mouseup', 'keyup', 'focus'].forEach(eventName => {
+            documentEditor.addEventListener(eventName, rememberEditorSelection);
+        });
+        documentEditor.addEventListener('input', () => {
+            editorStatusBadge.textContent = 'Draft edited';
+        });
+        documentEditor.addEventListener('dragover', event => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+        documentEditor.addEventListener('drop', event => {
+            event.preventDefault();
+            const raw = event.dataTransfer.getData('application/json');
+            if (!raw) return;
+            try {
+                const page = JSON.parse(raw);
+                insertTgsIntoEditor(page);
+            } catch (error) {
+                console.error('Could not insert dropped TGS:', error);
+            }
+        });
+    }
 
     initializeAllDynamicEditors();
     updateTemplateRelevance();
