@@ -405,6 +405,10 @@
         .stage-field-group { margin-bottom: 0; }
         .stage-button-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 8px; }
         .stage-button-row .mini-button { width: auto; }
+        .tgs-preview-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+        .tgs-preview-thumb { border: 1px solid var(--color-border); border-radius: 10px; background: #fff; padding: 8px; box-shadow: 0 6px 14px rgba(15, 34, 53, 0.05); }
+        .tgs-preview-thumb img { width: 100%; border-radius: 8px; border: 1px solid var(--color-border); }
+        .tgs-preview-thumb .field-note { margin-top: 6px; font-size: 0.8rem; }
         .tgs-library-grid { display: flex; flex-direction: column; gap: 12px; max-height: 950px; overflow: auto; }
         .tgs-card { border: 1px solid var(--color-border); border-radius: 12px; background: white; padding: 10px; box-shadow: 0 8px 18px rgba(15, 34, 53, 0.05); }
         .tgs-card-tag { display: inline-block; margin-bottom: 8px; background: var(--color-accent-soft); color: #7a4d00; padding: 5px 8px; border-radius: 999px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
@@ -518,6 +522,7 @@
                 <button type="button" class="mini-button" onclick="analyzeTgs()">🔍 Analyse TGS PDF</button>
                 <div id="tgsAnalysisStatus" class="field-note">No TGS analysed yet.</div>
                 <div id="tgsSuggestionPanel" class="reference-card" style="display:none; margin-top: 10px;"></div>
+                <div id="tgsAnalyzedPreview" class="tgs-preview-strip"></div>
             </div>
         </details>
 
@@ -959,6 +964,7 @@
     const tgsPdfInput = document.getElementById('tgsPdf');
     const tgsAnalysisStatus = document.getElementById('tgsAnalysisStatus');
     const tgsSuggestionPanel = document.getElementById('tgsSuggestionPanel');
+    const tgsAnalyzedPreview = document.getElementById('tgsAnalyzedPreview');
     const uploadZone = document.getElementById('uploadZone');
     const uploadMeta = document.getElementById('uploadMeta');
     const validationSummary = document.getElementById('validationSummary');
@@ -1319,6 +1325,7 @@
             uploadMeta.textContent = 'No file selected yet.';
             currentTgsPreviewPages = [];
             renderTgsLibrary([]);
+            renderAnalyzedTgsPreview([]);
             renderStagePlanner();
             updateSectionStatuses();
             return;
@@ -2042,6 +2049,22 @@
         `;
     }
 
+    function renderAnalyzedTgsPreview(pages) {
+        if (!tgsAnalyzedPreview) return;
+
+        if (!pages.length) {
+            tgsAnalyzedPreview.innerHTML = '';
+            return;
+        }
+
+        tgsAnalyzedPreview.innerHTML = pages.slice(0, 12).map(page => `
+            <div class="tgs-preview-thumb">
+                <img src="${page.imageUrl}" alt="${escapeHtml(page.label || 'TGS sheet')}" />
+                <div class="field-note"><strong>${escapeHtml(page.label || `TGS Page ${page.pageNumber}`)}</strong>${page.subtitle ? `<br>${escapeHtml(page.subtitle)}` : ''}</div>
+            </div>
+        `).join('');
+    }
+
     function renderTgsLibrary(pages) {
         tgsLibraryCount.textContent = `${pages.length} loaded`;
 
@@ -2052,8 +2075,11 @@
                     <div class="field-note">Upload a TGS PDF and open the editor to preview each sheet here.</div>
                 </div>
             `;
+            renderAnalyzedTgsPreview([]);
             return;
         }
+
+        renderAnalyzedTgsPreview(pages);
 
         tgsLibraryGrid.innerHTML = pages.map(page => `
             <div class="tgs-card" draggable="true" data-page-id="${escapeHtml(page.id)}">
@@ -2227,11 +2253,11 @@
 
         const formData = new FormData();
         formData.append('tgsPdf', tgsPdfInput.files[0]);
-        tgsAnalysisStatus.textContent = 'Analysing TGS in the background...';
+        tgsAnalysisStatus.textContent = 'Analysing TGS and generating image previews...';
         setLoadingState(true, 'Reading TGS title block…');
 
         try {
-            const response = await fetch(apiUrl('/api/analyze-tgs'), {
+            const response = await fetch(apiUrl('/api/tgs-preview'), {
                 method: 'POST',
                 body: formData,
             });
@@ -2242,11 +2268,15 @@
             }
 
             const data = await response.json();
+            currentTgsPreviewPages = data.pages || [];
+            renderTgsLibrary(currentTgsPreviewPages);
+            renderAnalyzedTgsPreview(currentTgsPreviewPages);
             applyTgsSuggestions(data);
-            tgsAnalysisStatus.textContent = 'TGS analysis complete. Suggested values have been applied to the form.';
+            tgsAnalysisStatus.textContent = `TGS analysis complete. ${currentTgsPreviewPages.length} pages were extracted and previewed.`;
         } catch (error) {
             console.error('Error analysing TGS:', error);
             tgsAnalysisStatus.textContent = 'TGS analysis failed.';
+            renderAnalyzedTgsPreview([]);
             alert('There was an error analysing the TGS: ' + error.message);
         } finally {
             setLoadingState(false);

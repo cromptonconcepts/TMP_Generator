@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+
+limit_mb=95
+limit_bytes=$((limit_mb * 1024 * 1024))
+changed=0
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  [ -f "$file" ] || continue
+
+  size=$(wc -c < "$file" | tr -d ' ')
+  [ -n "$size" ] || continue
+
+  if [ "$size" -gt "$limit_bytes" ]; then
+    attr_output=$(git check-attr filter -- "$file")
+    case "$attr_output" in
+      *"filter: lfs"*)
+        ;;
+      *)
+        echo "Large file detected: $file ($(awk "BEGIN { printf \"%.2f\", $size / 1024 / 1024 }") MB). Tracking in Git LFS."
+        git lfs track "$file"
+        git add .gitattributes "$file"
+        changed=1
+        ;;
+    esac
+  fi
+done <<EOF
+$staged_files
+EOF
+
+if [ "$changed" -eq 1 ]; then
+  echo "Updated Git LFS tracking for oversized files."
+fi
+
+exit 0
