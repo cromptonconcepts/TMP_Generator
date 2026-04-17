@@ -3,6 +3,7 @@ import io
 import os
 import re
 import zipfile
+from collections import Counter
 from datetime import datetime
 from functools import lru_cache
 
@@ -23,6 +24,12 @@ CORS(app, origins=['http://127.0.0.1:5000'])
 BASE_DIR = os.path.dirname(__file__)
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'New_Templates')
 HTML_FILE = os.path.join(BASE_DIR, 'index.html')
+TEMPLATE_NAME_ALIASES = {
+    'Full_TMP.docx': '(FULL) CC00000-TMP-Rev00.docx',
+    'Medium_TMP.docx': '(MED) CC00000-TMP-Rev00.docx',
+    'Mini_TMP.docx': '(MINI) CC00000-TMP-Rev00.docx',
+    'CC00000-TMP-Rev00-Jinja.docx': '(FULL) CC00000-TMP-Rev00.docx',
+}
 
 BASE_FORM_FIELDS = {
     'project_name', 'project_location', 'local_government_area', 'client_company',
@@ -31,8 +38,9 @@ BASE_FORM_FIELDS = {
     'end_date', 'duration', 'pm_name', 'pm_phone', 'pm_email', 'sm_name',
     'sm_phone', 'sm_email', 'se_name', 'se_phone', 'se_email', 'wo_name',
     'wo_phone', 'wo_email', 'traffic_management_notes', 'tgs_reference',
-    'tgs_number', 'stages', 'data_source', 'cc', 'cc_number', 'revision_number',
-    'tmr_cert_82_number', 'author_name', 'author_signature', 'author_position',
+    'tgs_number', 'stages', 'data_source', 'jurisdiction', 'target_year',
+    'hourly_database_data', 'hourly_db_data', 'calculated_estimates', 'risk_assessment_summary',
+    'cc', 'cc_number', 'revision_number', 'tmr_cert_82_number', 'author_name', 'author_signature', 'author_position',
     'author_date', 'reviewer_name', 'reviewer_op', 'lot_parcel_number', 'development_type', 'number_of_floors',
     'document_preparation', 'revision_history', 'distribution_list', 'change_log', 'badge_contacts',
     'tm_consultants', 'authority_contacts', 'dtmr_contact', 'dtmr_email', 'dtmr_contacts',
@@ -265,6 +273,26 @@ def normalize_context_value(value):
     return str(value)
 
 
+def resolve_template_name(requested_name):
+    requested_name = normalize_context_value(requested_name).strip()
+    if requested_name:
+        alias_name = TEMPLATE_NAME_ALIASES.get(requested_name, requested_name)
+        alias_path = os.path.join(TEMPLATE_DIR, alias_name)
+        if os.path.exists(alias_path):
+            return alias_name
+
+    for fallback_name in TEMPLATE_NAME_ALIASES.values():
+        fallback_path = os.path.join(TEMPLATE_DIR, fallback_name)
+        if os.path.exists(fallback_path):
+            return fallback_name
+
+    available_templates = sorted(
+        filename for filename in os.listdir(TEMPLATE_DIR)
+        if filename.lower().endswith('.docx')
+    )
+    return available_templates[0] if available_templates else requested_name
+
+
 def fallback_for_key(key, context):
     alias_map = {
         'project_title': 'project_name',
@@ -339,8 +367,92 @@ def format_date_value(value):
     return value
 
 
+def clean_scanned_line(value):
+    text = normalize_context_value(value)
+    text = text.replace('\ufb01', 'fi').replace('\ufb02', 'fl')
+    text = re.sub(r'[\x00-\x1f\x7f-\x9f]+', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip(' -–|:\t')
+
+
+def is_address_like(text):
+    cleaned = clean_scanned_line(text)
+    if not cleaned:
+        return False
+    return bool(re.search(r'\b\d+\s+.*\b(?:RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|HWY|HIGHWAY|CT|COURT|PDE|PARADE|CRES|CRESCENT|PL|PLACE|BLVD|BOULEVARD)\b.*\b(?:QLD|NSW|VIC|SA|WA|TAS|NT|ACT)\b', cleaned, re.IGNORECASE))
+
+
+def infer_local_government_area(text):
+    cleaned = clean_scanned_line(text).upper()
+    lga_hints = {
+        'BRISBANE': 'Brisbane City Council',
+        'GOLD COAST': 'Gold Coast City Council',
+        'LOGAN': 'Logan City Council',
+        'IPSWICH': 'Ipswich City Council',
+        'MORETON BAY': 'Moreton Bay City Council',
+        'SUNSHINE COAST': 'Sunshine Coast Council',
+        'GYMPIE': 'Gympie Regional Council',
+        'REDLAND': 'Redland City Council',
+    }
+    for hint, lga in lga_hints.items():
+        if hint in cleaned:
+            return lga
+    return ''
+
+
+def is_valid_stage_candidate(text):
+    cleaned = clean_scanned_line(text)
+    if not cleaned or len(cleaned) < 4 or len(cleaned) > 80:
+        return False
+
+    upper = cleaned.upper()
+    if upper in {stage.upper() for stage in KNOWN_TGS_STAGES}:
+        return True
+
+    if re.search(r'\.{4,}', cleaned) or re.fullmatch(r'\d+(?:\s*OF\s*\d+)?', upper):
+        return False
+    if upper.startswith(('PAGE ', 'FIGURE ', 'TABLE ', 'NOTE', 'NOTES', 'DESCRIPTION', 'CONTACT', 'ROAD SPEED', 'BETWEEN ')):
+        return False
+    if upper in {'DESCRIPTION', 'NOTES', 'CONTACT', 'RISK ASSESSMENT', 'PLAN', 'ROAD', 'RD'}:
+        return False
+    if is_address_like(cleaned):
+        return False
+
+    return any(keyword in upper for keyword in (
+        'WORKS', 'INSTALLATION', 'INSPECTION', 'LOCATING', 'CONSTRUCTION',
+        'TRENCH', 'REINSTATEMENT', 'MARKING', 'SWITCH', 'EXCAVATION'
+    ))
+
+
+def is_valid_methodology_candidate(text):
+    cleaned = clean_scanned_line(text)
+    if not cleaned or len(cleaned) < 8 or len(cleaned) > 160:
+        return False
+
+    upper = cleaned.upper()
+    if re.search(r'\.{4,}', cleaned):
+        return False
+    if upper.startswith(('FIGURE ', 'TABLE ', 'PAGE ', 'DESCRIPTION', 'NOTES', 'CONTACT')):
+        return False
+    if 'ROAD SPEED' in upper or upper.startswith('BETWEEN ') or is_address_like(cleaned):
+        return False
+
+    return any(keyword in upper for keyword in (
+        'PEDESTRIAN', 'LANE', 'CLOSURE', 'DETOUR', 'STOP/SLOW', 'STOP SLOW',
+        'WORKS', 'TRAFFIC MANAGEMENT', 'TRAFFIC CONTROL', 'FOOTPATH'
+    ))
+
+
+def best_candidate(values):
+    cleaned_values = [clean_scanned_line(value) for value in values if clean_scanned_line(value)]
+    if not cleaned_values:
+        return ''
+    counts = Counter(cleaned_values)
+    return sorted(counts.items(), key=lambda item: (-item[1], -len(item[0])))[0][0]
+
+
 def extract_tgs_metadata_from_text(page_text):
-    lines = [' '.join(line.split()).strip() for line in str(page_text or '').splitlines() if ' '.join(line.split()).strip()]
+    lines = [clean_scanned_line(line) for line in str(page_text or '').splitlines() if clean_scanned_line(line)]
     metadata = {
         'suite': '',
         'stage_name': '',
@@ -349,17 +461,20 @@ def extract_tgs_metadata_from_text(page_text):
         'cross_streets': '',
         'road_speed': '',
         'sheet_reference': '',
+        'project_name': '',
+        'client_company': '',
+        'traffic_control_company': '',
+        'local_government_area': '',
     }
 
     if not lines:
         return metadata
 
-    closure_markers = ('CLOSURE', 'STOP/SLOW', 'DETOUR', 'TRAFFIC SWITCH', 'LANE', 'SHOULDER', 'FOOTPATH')
-    ignore_markers = ('ROAD SPEED', 'BETWEEN ')
-    address_pattern = re.compile(r'\b\d+\s+.*\b(?:RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|HWY|HIGHWAY|CT|COURT|PDE|PARADE)\b.*\b(?:QLD|NSW|VIC|SA|WA|TAS|NT|ACT)\b', re.IGNORECASE)
     sheet_pattern = re.compile(r'CC\d{5}-S\d+-?\d+[A-C]?', re.IGNORECASE)
+    company_pattern = re.compile(r'\b(?:PTY\s+LTD|CIVIL|CONSTRUCTION|CONTRACTORS?|BUILDERS?|DEVELOPMENTS?|TRAFFIC)\b', re.IGNORECASE)
+    project_pattern = re.compile(r'\b(?:PROJECT|SITE|LOCATION|ADDRESS)\s*[:\-]\s*(.+)', re.IGNORECASE)
 
-    for line in lines[:12]:
+    for line in lines[:40]:
         upper = line.upper()
 
         if not metadata['sheet_reference']:
@@ -367,8 +482,14 @@ def extract_tgs_metadata_from_text(page_text):
             if match:
                 metadata['sheet_reference'] = match.group(0).upper()
 
-        if not metadata['suite'] and any(word in upper for word in ('CIVIL', 'CONSTRUCTION', 'DRAINAGE', 'ROADWORK')):
-            if not line.startswith('(') and 'ROAD SPEED' not in upper and len(line) <= 60:
+        if not metadata['road_speed'] and 'ROAD SPEED' in upper:
+            metadata['road_speed'] = line
+
+        if not metadata['cross_streets'] and upper.startswith('BETWEEN '):
+            metadata['cross_streets'] = line
+
+        if not metadata['suite'] and any(word in upper for word in ('CIVIL', 'CONSTRUCTION', 'DRAINAGE', 'ROADWORK', 'TRAFFIC MANAGEMENT')):
+            if len(line) <= 80 and not re.search(r'\.{4,}', line) and 'ROAD SPEED' not in upper:
                 metadata['suite'] = line.replace(' - ', ' ').strip()
 
         if not metadata['stage_name']:
@@ -376,33 +497,40 @@ def extract_tgs_metadata_from_text(page_text):
                 if stage.upper() in upper:
                     metadata['stage_name'] = stage
                     break
-
-        if not metadata['methodology'] and (line.startswith('(') or any(marker in upper for marker in closure_markers)):
-            if not any(marker in upper for marker in ignore_markers):
-                metadata['methodology'] = line if line.startswith('(') else f'({line})'
-
-        if not metadata['site_location'] and address_pattern.search(line):
-            metadata['site_location'] = line
-
-        if not metadata['cross_streets'] and upper.startswith('BETWEEN '):
-            metadata['cross_streets'] = line
-
-        if not metadata['road_speed'] and 'ROAD SPEED' in upper:
-            metadata['road_speed'] = line
-
-    if not metadata['stage_name']:
-        for line in lines[1:6]:
-            upper = line.upper()
-            if (
-                line != metadata['suite']
-                and line != metadata['methodology']
-                and len(line) <= 60
-                and not line.startswith('(')
-                and not any(marker in upper for marker in ignore_markers)
-                and not address_pattern.search(line)
-            ):
+            if not metadata['stage_name'] and is_valid_stage_candidate(line):
                 metadata['stage_name'] = line
-                break
+
+        if not metadata['methodology'] and is_valid_methodology_candidate(line):
+            metadata['methodology'] = line if line.startswith('(') else f'({line})'
+
+        if not metadata['site_location'] and is_address_like(line):
+            metadata['site_location'] = line
+            metadata['local_government_area'] = metadata['local_government_area'] or infer_local_government_area(line)
+            if not metadata['project_name']:
+                project_parts = re.split(r'\s+[–-]\s+', line, maxsplit=1)
+                if len(project_parts) == 2 and not is_address_like(project_parts[0]):
+                    metadata['project_name'] = clean_scanned_line(project_parts[0])
+                    metadata['site_location'] = clean_scanned_line(project_parts[1])
+
+        if not metadata['project_name']:
+            project_match = project_pattern.search(line)
+            if project_match:
+                candidate = clean_scanned_line(project_match.group(1))
+                if candidate and not is_address_like(candidate):
+                    metadata['project_name'] = candidate
+
+        if not metadata['client_company'] and company_pattern.search(line) and 'CROMPTON CONCEPTS' not in upper:
+            if len(line) <= 90 and not upper.startswith(('FIGURE ', 'PAGE ', 'TABLE ')):
+                metadata['client_company'] = line
+
+        if not metadata['traffic_control_company'] and 'TRAFFIC' in upper and 'CROMPTON CONCEPTS' not in upper:
+            if company_pattern.search(line) and len(line) <= 90:
+                metadata['traffic_control_company'] = line
+
+    metadata['local_government_area'] = metadata['local_government_area'] or infer_local_government_area(metadata['site_location'])
+
+    if not metadata['methodology'] and metadata['stage_name']:
+        metadata['methodology'] = f'({metadata["stage_name"]} traffic management works)'
 
     return metadata
 
@@ -426,25 +554,234 @@ def build_stage_option_analysis(stages, suite='', methodology=''):
     )
 
 
+def parse_numeric_volume(value):
+    try:
+        if value is None or str(value).strip() == '':
+            return None
+        return float(str(value).replace(',', '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+# --- Traffic Impact Assessment (TIA) Engine ---
+def calculate_traffic_impact(jurisdiction, hourly_database_data, calculated_estimates, target_year, base_volume=12199):
+    """
+    Generates the AADT, VCR, and Queue Length estimations matching Tables 17-19.
+    """
+    active_volume_data = parse_numeric_volume(hourly_database_data)
+    if active_volume_data is None:
+        active_volume_data = parse_numeric_volume(calculated_estimates)
+    if active_volume_data is None:
+        active_volume_data = float(base_volume)
+
+    current_year = datetime.now().year
+    try:
+        target_year_int = int(float(target_year))
+    except (TypeError, ValueError):
+        target_year_int = current_year
+
+    growth_years = target_year_int - current_year if target_year_int > current_year else 0
+    projected_target_volume = int(round(active_volume_data * ((1 + 0.025) ** growth_years)))
+
+    if jurisdiction == 'Gold Coast':
+        capacity = 1500
+        vcr = projected_target_volume / capacity
+        queue_length = 150
+        return {
+            'aadt_target_year': projected_target_volume,
+            'vcr_score': round(vcr, 2),
+            'queue_length_m': queue_length,
+            'los_rating': 'D' if vcr > 0.85 else 'C'
+        }
+
+    capacity = 1670
+    vcr = projected_target_volume / capacity
+    queue_length = 130
+    return {
+        'aadt_target_year': projected_target_volume,
+        'vcr_score': round(vcr, 2),
+        'queue_length_m': queue_length,
+        'los_rating': 'C' if vcr <= 0.9 else 'D'
+    }
+
+
+# --- Option Analysis Generator ---
+def generate_options_analysis(stages):
+    """
+    Generates the structured Option Analysis tables for Vehicular, Vulnerable Users, Bus Stops, and Property (Tables 13-16).
+    """
+    if isinstance(stages, str):
+        stage_list = [stages.strip()] if stages.strip() else []
+    else:
+        stage_list = [normalize_context_value(stage).strip() for stage in (stages or []) if normalize_context_value(stage).strip()]
+
+    stage_text = ', '.join(stage_list) if stage_list else 'general site works'
+    vehicular = [
+        {'option': 'Side-track', 'features': 'Would allow closure of entire carriageway...', 'comment': 'Not practical due to nature of works'},
+        {'option': 'Contra Flow', 'features': 'Traffic through the worksite', 'comment': 'Reasonable detour route unavailable with maximum 5 min delay'},
+        {'option': 'Hold and Release', 'features': 'Temporarily holding traffic to allow construction vehicles...', 'comment': f'Adopted for {stage_text.lower()}'}
+    ]
+    pedestrian = [
+        {'option': 'Close footpath', 'reasoning': 'Allows elimination of the risk of trips and falls...', 'comment': 'Footpath will be closed. Pedestrian detour implemented.'}
+    ]
+    return {
+        'vehicular_options': vehicular,
+        'vulnerable_users': pedestrian,
+        'vehicular': vehicular,
+        'pedestrian': pedestrian,
+    }
+
+
+# --- Desktop Risk Assessment Generator ---
+def generate_desktop_risk_assessment():
+    """
+    Generates the Risk Assessment Hazard Matrix (Appendix C).
+    """
+    return [
+        {
+            'hazard': 'Pedestrians, cyclists, people with disabilities...',
+            'potential_risk': 'Unable to pass safely past the site',
+            'initial_risk': 'Very High',
+            'control_measure': 'Safe access maintained at all times around the site.',
+            'residual_risk': 'Medium'
+        },
+        {
+            'hazard': 'Traffic queues and delays',
+            'potential_risk': 'Unacceptably long delays to road users',
+            'initial_risk': 'Low',
+            'control_measure': 'No queuing of traffic required outside allowed thresholds.',
+            'residual_risk': 'Low'
+        },
+        {
+            'hazard': 'Complete closure of turning lanes',
+            'potential_risk': 'Removal of option for road users',
+            'initial_risk': 'High',
+            'control_measure': 'Left turning lane closed for 10 days only. Left turns permitted from traffic lane.',
+            'residual_risk': 'Medium'
+        }
+    ]
+
+
+def calculate_tia(jurisdiction, base_volume=None, target_year=None):
+    tia_results = calculate_traffic_impact(jurisdiction, base_volume, base_volume, target_year)
+    return {
+        'aadt': tia_results.get('aadt_target_year'),
+        'vcr': tia_results.get('vcr_score'),
+        'los': tia_results.get('los_rating'),
+        'queue_length': tia_results.get('queue_length_m'),
+    }
+
+
+def generate_risk_matrix():
+    return generate_desktop_risk_assessment()
+
+
+def generate_ctmp_report(form_data):
+    resolved_template_name = resolve_template_name(form_data.get('templateType', 'CC00000-TMP-Rev00-Jinja.docx'))
+    template_path = os.path.join(TEMPLATE_DIR, resolved_template_name)
+    doc = DocxTemplate(template_path)
+
+    stages = form_data.getlist('stages') if hasattr(form_data, 'getlist') else []
+    if not stages:
+        construction_stage = normalize_context_value(form_data.get('construction_stage', '')).strip()
+        if construction_stage:
+            stages = [construction_stage]
+
+    template_fields = extract_template_fields(template_path)
+    context = build_context(form_data, template_fields, stages, doc, uploaded_images=[])
+
+    jurisdiction = form_data.get('jurisdiction', 'TMR')
+    try:
+        target_year = int(form_data.get('target_year', form_data.get('targetYear', datetime.now().year + 2)))
+    except (TypeError, ValueError):
+        target_year = datetime.now().year + 2
+
+    tia_results = calculate_tia(
+        jurisdiction=jurisdiction,
+        base_volume=form_data.get('aadt_volume', form_data.get('hourlyDbData') or form_data.get('hourly_database_data')),
+        target_year=target_year
+    )
+    options_analysis = generate_options_analysis(stages or form_data.get('construction_stage', ''))
+    risk_matrix = generate_risk_matrix()
+
+    context.update({
+        'project_name': form_data.get('project_name', context.get('project_name')),
+        'scope_of_works': form_data.get('scope_of_works', context.get('scope_of_works')),
+        'project_location': form_data.get('project_location', context.get('project_location')),
+        'date': datetime.now().strftime('%d.%m.%Y'),
+        'author_name': form_data.get('author_name', context.get('author_name', 'Sanju Bhandari')),
+        'client_company': form_data.get('client_company', context.get('client_company')),
+        'tia_target_year': target_year,
+        'tia_aadt': tia_results.get('aadt'),
+        'tia_vcr': tia_results.get('vcr'),
+        'tia_los': tia_results.get('los'),
+        'tia_queue_length': tia_results.get('queue_length'),
+        'vehicular_options': options_analysis.get('vehicular'),
+        'pedestrian_options': options_analysis.get('pedestrian'),
+        'risk_matrix': risk_matrix,
+        'risk_assessment_table': risk_matrix,
+    })
+
+    doc.render(context)
+    safe_project_name = normalize_context_value(context.get('project_name', 'Project')).replace(' ', '_')
+    output_filename = os.path.join(BASE_DIR, f'CTMP_{safe_project_name}.docx')
+    doc.save(output_filename)
+    return output_filename
+
+
 def summarize_tgs_analysis(uploaded_images):
-    stages = []
-    suite = ''
-    methodology = ''
-    site_location = ''
-    cross_streets = ''
-    road_speed = ''
-    sheet_reference = ''
+    stage_candidates = []
+    suite_candidates = []
+    methodology_candidates = []
+    site_candidates = []
+    cross_street_candidates = []
+    speed_candidates = []
+    sheet_candidates = []
+    project_candidates = []
+    client_candidates = []
+    traffic_company_candidates = []
+    lga_candidates = []
 
     for item in uploaded_images or []:
-        stage_name = normalize_context_value(item.get('stage_name', '')).strip()
-        if stage_name and stage_name not in stages:
-            stages.append(stage_name)
-        suite = suite or normalize_context_value(item.get('suite', '')).strip()
-        methodology = methodology or normalize_context_value(item.get('methodology', '')).strip()
-        site_location = site_location or normalize_context_value(item.get('site_location', '')).strip()
-        cross_streets = cross_streets or normalize_context_value(item.get('cross_streets', '')).strip()
-        road_speed = road_speed or normalize_context_value(item.get('road_speed', '')).strip()
-        sheet_reference = sheet_reference or normalize_context_value(item.get('sheet_reference', '')).strip()
+        stage_name = clean_scanned_line(item.get('stage_name', ''))
+        if is_valid_stage_candidate(stage_name):
+            stage_candidates.append(stage_name)
+
+        suite_candidates.append(item.get('suite', ''))
+
+        methodology = clean_scanned_line(item.get('methodology', ''))
+        if is_valid_methodology_candidate(methodology):
+            methodology_candidates.append(methodology)
+
+        site_candidates.append(item.get('site_location', ''))
+        cross_street_candidates.append(item.get('cross_streets', ''))
+        speed_candidates.append(item.get('road_speed', ''))
+        sheet_candidates.append(item.get('sheet_reference', ''))
+        project_candidates.append(item.get('project_name', ''))
+        client_candidates.append(item.get('client_company', ''))
+        traffic_company_candidates.append(item.get('traffic_control_company', ''))
+        lga_candidates.append(item.get('local_government_area', ''))
+
+    recognized_stages = [stage for stage in KNOWN_TGS_STAGES if any(stage.lower() == candidate.lower() for candidate in stage_candidates)]
+    additional_stages = []
+    for candidate in stage_candidates:
+        if candidate not in recognized_stages and candidate not in additional_stages:
+            additional_stages.append(candidate)
+    stages = recognized_stages + additional_stages[:4]
+
+    suite = best_candidate(suite_candidates) or 'Construction'
+    methodology = best_candidate(methodology_candidates)
+    site_location = best_candidate(site_candidates)
+    cross_streets = best_candidate(cross_street_candidates)
+    road_speed = best_candidate(speed_candidates)
+    sheet_reference = best_candidate(sheet_candidates)
+    project_name = best_candidate(project_candidates)
+    client_company = best_candidate(client_candidates)
+    traffic_control_company = best_candidate(traffic_company_candidates)
+    local_government_area = best_candidate(lga_candidates) or infer_local_government_area(site_location)
+
+    if not methodology and stages:
+        methodology = f'({stages[0]} traffic management works)'
 
     option_analysis = build_stage_option_analysis(stages, suite, methodology)
 
@@ -456,6 +793,10 @@ def summarize_tgs_analysis(uploaded_images):
         'crossStreets': cross_streets,
         'roadSpeed': road_speed,
         'sheetReference': sheet_reference,
+        'projectName': project_name,
+        'clientCompany': client_company,
+        'trafficControlCompany': traffic_control_company,
+        'localGovernmentArea': local_government_area,
         'optionAnalysis': option_analysis,
     }
 
@@ -719,7 +1060,19 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
     generic_phone = client_phone
     generic_email = client_email
 
-    tgs_metadata = {'suite': '', 'stage_name': '', 'methodology': ''}
+    tgs_metadata = {
+        'suite': '',
+        'stage_name': '',
+        'methodology': '',
+        'site_location': '',
+        'cross_streets': '',
+        'road_speed': '',
+        'sheet_reference': '',
+        'project_name': '',
+        'client_company': '',
+        'traffic_control_company': '',
+        'local_government_area': '',
+    }
     for image_info in uploaded_images or []:
         for key in tgs_metadata:
             if not tgs_metadata[key] and image_info.get(key):
@@ -732,9 +1085,19 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
     tgs_cross_streets = tgs_metadata.get('cross_streets', '')
     tgs_road_speed = tgs_metadata.get('road_speed', '')
     tgs_sheet_reference = tgs_metadata.get('sheet_reference', '')
+    tgs_project_name = tgs_metadata.get('project_name', '')
+    tgs_client_company = tgs_metadata.get('client_company', '')
+    tgs_traffic_control_company = tgs_metadata.get('traffic_control_company', '')
+    tgs_local_government_area = tgs_metadata.get('local_government_area', '')
 
+    if not project_name and tgs_project_name:
+        project_name = tgs_project_name
     if not project_location and tgs_site_location:
         project_location = tgs_site_location
+    if not client_company and tgs_client_company:
+        client_company = tgs_client_company
+    if not traffic_control_company and tgs_traffic_control_company:
+        traffic_control_company = tgs_traffic_control_company
 
     if tgs_stage_name and tgs_stage_name not in stages:
         stages = [*stages, tgs_stage_name]
@@ -746,8 +1109,29 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
     start_date = normalized_form.get('start_date', today)
     end_date = normalized_form.get('end_date', today)
     duration = normalized_form.get('duration', '')
-    local_government_area = normalized_form.get('local_government_area', '')
-    tgs_reference = normalized_form.get('tgs_reference', '')
+    local_government_area = normalized_form.get('local_government_area', tgs_local_government_area)
+    jurisdiction = normalized_form.get('jurisdiction', 'TMR')
+    target_year = normalized_form.get('target_year', current_year)
+    hourly_database_data = parse_numeric_volume(
+        normalized_form.get('hourly_database_data', normalized_form.get('hourly_db_data'))
+    )
+    calculated_estimates = parse_numeric_volume(normalized_form.get('calculated_estimates'))
+    tia_metrics = calculate_traffic_impact(
+        jurisdiction=jurisdiction,
+        hourly_database_data=hourly_database_data,
+        calculated_estimates=calculated_estimates,
+        target_year=target_year,
+    )
+    structured_options = generate_options_analysis(stages)
+    desktop_risk_matrix = generate_desktop_risk_assessment()
+    risk_assessment_summary = normalized_form.get('risk_assessment_summary', '')
+    if not risk_assessment_summary:
+        risk_assessment_summary = '\n'.join(
+            f"{item['hazard']}: {item['control_measure']} (Residual risk: {item['residual_risk']})"
+            for item in desktop_risk_matrix
+        )
+
+    tgs_reference = normalized_form.get('tgs_reference', tgs_sheet_reference)
     tgs_number = normalized_form.get('tgs_number', '')
     cc_input = normalized_form.get('cc', normalized_form.get('cc_number', ''))
     revision_number = normalized_form.get('revision_number', '0')
@@ -898,6 +1282,22 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
         'email': generic_email,
         'local_government_area': local_government_area,
         'describe_lga': local_government_area,
+        'jurisdiction': jurisdiction,
+        'target_year': target_year,
+        'aadt_target_year': tia_metrics.get('aadt_target_year', ''),
+        'vcr_score': tia_metrics.get('vcr_score', ''),
+        'queue_length_m': tia_metrics.get('queue_length_m', ''),
+        'los_rating': tia_metrics.get('los_rating', ''),
+        'traffic_impact_summary': (
+            f"Target year {target_year} AADT: {tia_metrics.get('aadt_target_year', '')}; "
+            f"VCR: {tia_metrics.get('vcr_score', '')}; "
+            f"Queue Length: {tia_metrics.get('queue_length_m', '')} m; "
+            f"LOS: {tia_metrics.get('los_rating', '')}"
+        ),
+        'vehicular_options': structured_options.get('vehicular_options', []),
+        'vulnerable_users': structured_options.get('vulnerable_users', []),
+        'desktop_risk_assessment': risk_assessment_summary,
+        'desktop_risk_matrix': desktop_risk_matrix,
         'describe_suburb': project_location,
         'suburb': project_location,
         'road': project_location,
@@ -1124,17 +1524,32 @@ def extract_tgs_page_images(request_files, render_scale=2):
                     upper_text = page_text.upper()
                     has_tgs_sheet = bool(tgs_pattern.search(upper_text))
                     page_metadata = extract_tgs_metadata_from_text(raw_text)
-                    has_title_block_metadata = bool(page_metadata.get('stage_name') or page_metadata.get('methodology') or page_metadata.get('suite'))
+                    has_title_block_metadata = bool(
+                        page_metadata.get('sheet_reference') or
+                        page_metadata.get('site_location') or
+                        page_metadata.get('cross_streets') or
+                        page_metadata.get('road_speed') or
+                        page_metadata.get('stage_name') or
+                        page_metadata.get('methodology')
+                    )
 
                     image_count = len(page.get_images(full=True))
                     drawing_count = len(page.get_drawings())
                     low_text_density = len(page_text) < 1200
                     drawing_page = (image_count + drawing_count) > 0 and low_text_density
+                    has_traffic_keywords = any(keyword in upper_text for keyword in (
+                        'ROAD SPEED', 'DETOUR', 'STOP/SLOW', 'STOP SLOW', 'PEDESTRIAN MANAGEMENT',
+                        'TRAFFIC MANAGEMENT', 'LANE CLOSURE', 'FOOTPATH WORKS', 'TGS'
+                    ))
+                    looks_like_contents_page = ('CONTENTS' in upper_text) or (upper_text.count('FIGURE ') >= 3) or bool(re.search(r'\.{4,}', page_text))
 
                     if page_index == 0 and not has_tgs_sheet and not has_title_block_metadata:
                         continue
 
-                    if not has_tgs_sheet and not drawing_page and not has_title_block_metadata:
+                    if looks_like_contents_page and not has_tgs_sheet and not has_title_block_metadata:
+                        continue
+
+                    if not has_tgs_sheet and not has_title_block_metadata and not (drawing_page and has_traffic_keywords):
                         continue
 
                     pixmap = page.get_pixmap(matrix=fitz.Matrix(render_scale, render_scale), alpha=False)
@@ -1188,6 +1603,7 @@ def get_template_index():
     template_name = request.args.get('template')
 
     if template_name:
+        template_name = resolve_template_name(template_name)
         template_path = os.path.join(TEMPLATE_DIR, template_name)
         if not os.path.exists(template_path):
             return jsonify({'error': f'Template {template_name} not found'}), 404
@@ -1255,6 +1671,7 @@ def tgs_preview():
 
 
 @app.route('/api/generate-ctmp', methods=['POST'])
+@app.route('/generate', methods=['POST'])
 def generate_ctmp():
     try:
         template_name = request.form.get('templateType')
@@ -1265,6 +1682,7 @@ def generate_ctmp():
         if not template_name:
             return jsonify({'error': 'No template selected'}), 400
 
+        template_name = resolve_template_name(template_name)
         template_path = os.path.join(TEMPLATE_DIR, template_name)
         if not os.path.exists(template_path):
             return jsonify({'error': f'Template {template_name} not found'}), 404
@@ -1275,6 +1693,32 @@ def generate_ctmp():
 
         template_fields = extract_template_fields(template_path)
         context = build_context(request.form, template_fields, stages, doc, uploaded_images)
+
+        jurisdiction = request.form.get('jurisdiction', 'TMR')
+        target_year = request.form.get('targetYear', request.form.get('target_year', '2026'))
+        hourly_db = request.form.get('hourlyDbData', request.form.get('hourly_database_data'))
+        calculated_est = request.form.get('calculatedEstimates', request.form.get('calculated_estimates'))
+
+        tia_results = calculate_traffic_impact(jurisdiction, hourly_db, calculated_est, target_year)
+        options_analysis = generate_options_analysis(context.get('stages', []))
+        risk_matrix = generate_risk_matrix()
+
+        context.update({
+            'target_year': target_year,
+            'jurisdiction': jurisdiction,
+            'tia_target_year': target_year,
+            'tia_aadt': tia_results.get('aadt_target_year'),
+            'tia_vcr': tia_results.get('vcr_score'),
+            'tia_queue': tia_results.get('queue_length_m'),
+            'tia_queue_length': tia_results.get('queue_length_m'),
+            'tia_los': tia_results.get('los_rating'),
+            'vehicular_options': options_analysis.get('vehicular_options'),
+            'vulnerable_options': options_analysis.get('vulnerable_users'),
+            'pedestrian_options': options_analysis.get('pedestrian'),
+            'risk_matrix': risk_matrix,
+            'risk_assessment_table': risk_matrix,
+        })
+
         context['data_source'] = 'Hourly Profile Target Year' if data_source == 'hourly_profile' else 'Standard Estimate'
         context['tgs_images'] = [InlineImage(doc, io.BytesIO(image['bytes']), width=Mm(150)) for image in uploaded_images]
 

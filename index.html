@@ -463,7 +463,7 @@
             <a href="#section-5"><span>5. Scope and Schedule</span><span class="nav-status" id="nav-status-5">○</span></a>
             <a href="#section-6"><span>6. Contacts</span><span class="nav-status" id="nav-status-6">○</span></a>
             <a href="#section-7"><span>7. Staging</span><span class="nav-status" id="nav-status-7">○</span></a>
-            <a href="#section-8"><span>8. Traffic Inputs</span><span class="nav-status" id="nav-status-8">○</span></a>
+            <a href="#section-8"><span>8. Traffic Assessment</span><span class="nav-status" id="nav-status-8">○</span></a>
             <a href="#section-9"><span>9. References</span><span class="nav-status" id="nav-status-9">○</span></a>
         </nav>
     </aside>
@@ -476,7 +476,7 @@
             <div style="margin-top: 12px; display: inline-block; padding: 6px 12px; background: #fff4df; color: #7a4d00; border: 1px solid rgba(211, 145, 40, 0.55); border-radius: 999px; font-size: 0.85rem; font-weight: 700;">Under development • Beta use only</div>
         </div>
 
-        <form id="ctmpForm">
+        <form id="ctmpGeneratorForm" action="/generate" method="POST" enctype="multipart/form-data">
             <div class="restore-banner" id="restoreBanner">
                 <strong>Previous draft found.</strong>
                 <div id="restoreBannerText">You can restore the last saved session.</div>
@@ -862,19 +862,34 @@
                 <span class="section-status" id="status-8">○</span>
             </summary>
             <div class="section-body">
-            <div class="form-group">
-                <label for="dataSource">Primary Traffic Volume Data Source</label>
-                <select id="dataSource" name="dataSource" required>
-                    <option value="hourly_profile">Target Year Hourly Database Data (Preferred)</option>
-                    <option value="standard_estimate">Standard Proportionate Estimate</option>
-                </select>
+                <div class="field-grid">
+                    <div class="form-group">
+                        <label for="jurisdiction">Jurisdiction Engine</label>
+                        <select id="jurisdiction" name="jurisdiction" required>
+                            <option value="TMR">TMR (Department of Transport and Main Roads)</option>
+                            <option value="Gold Coast">Gold Coast City Council</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetYear">Target Year</label>
+                        <input type="number" id="targetYear" name="target_year" placeholder="e.g., 2026" required>
+                        <div class="field-note">All traffic calculations will be projected against this target year.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="aadtVolume">Current AADT Volume</label>
+                        <input type="number" id="aadtVolume" name="aadt_volume" placeholder="Current AADT Volume">
+                        <div class="field-note">Optional base traffic volume used for automated TIA calculations.</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="dataSource">Primary Traffic Volume Data Source</label>
+                    <select id="dataSource" name="dataSource" required>
+                        <option value="hourly_profile">Hourly Database Data</option>
+                        <option value="standard_estimate">Calculated Estimates</option>
+                    </select>
+                    <div class="field-note">The system will automatically prioritize hourly database data over calculated estimates whenever empirical data is present.</div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="trafficManagementNotes">Traffic Management Notes</label>
-                <textarea id="trafficManagementNotes" name="trafficManagementNotes" placeholder="Describe the TTM arrangements, detours, access arrangements, or pedestrian measures."></textarea>
-            </div>
-        </div>
-
         </details>
 
         <details class="form-section" id="section-9" data-section="9" open>
@@ -897,7 +912,8 @@
 
         <div class="action-row">
             <button type="button" class="ghost-button" onclick="fillDummyData()">🧪 Fill Test Data</button>
-            <button type="button" class="primary-button" onclick="generateReport()">� Open In-Page Editor</button>
+            <button type="submit" class="primary-button">Generate CTMP Document</button>
+            <button type="button" class="ghost-button" onclick="generateReport()">📄 Open In-Page Editor</button>
         </div>
     </form>
 
@@ -911,7 +927,7 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 <button type="button" class="mini-button" onclick="saveEditorAsWord()">💾 Save as Word</button>
                 <button type="button" class="mini-button" onclick="saveEditorAsPdf()">🖨️ Save as PDF</button>
-                <button type="button" class="ghost-button" onclick="document.getElementById('ctmpForm').scrollIntoView({ behavior: 'smooth', block: 'start' })">← Back to form</button>
+                <button type="button" class="ghost-button" onclick="document.getElementById('ctmpGeneratorForm').scrollIntoView({ behavior: 'smooth', block: 'start' })">← Back to form</button>
             </div>
         </div>
         <div class="editor-layout">
@@ -957,7 +973,7 @@
     const templateStats = document.getElementById('templateStats');
     const templateFieldContainer = document.getElementById('templateFieldContainer');
     const templateCleanupIndex = document.getElementById('templateCleanupIndex');
-    const formElement = document.getElementById('ctmpForm');
+    const formElement = document.getElementById('ctmpGeneratorForm');
     const ccNumberInput = document.getElementById('ccNumber');
     const revisionNumberInput = document.getElementById('revisionNumber');
     const documentReferencePreview = document.getElementById('documentReferencePreview');
@@ -979,6 +995,8 @@
     const tgsLibraryCount = document.getElementById('tgsLibraryCount');
     const editorStatusBadge = document.getElementById('editorStatusBadge');
     const DRAFT_STORAGE_KEY = 'ctmp-generator-draft-v2';
+    const APP_IMPORT_STORAGE_KEY = 'ctmp-app-import-v1';
+    const APP_PENDING_TARGET_KEY = 'ctmp-app-pending-target-v1';
     const DEFAULT_APP_URLS = {
         option: 'https://cromptonconcepts.github.io/Option_Analysis/',
         risk: 'https://cromptonconcepts.github.io/Risk-Assessment/',
@@ -986,6 +1004,7 @@
     };
     let currentTgsPreviewPages = [];
     let savedSelectionRange = null;
+    let pendingImportContext = null;
 
     function apiUrl(path) {
         return `${API_BASE}${path}`;
@@ -1011,6 +1030,12 @@
         saveDraftToLocalStorage();
     });
     tgsPdfInput.addEventListener('change', updateUploadDisplay);
+    window.addEventListener('focus', () => tryAutoImportFromLinkedApp());
+    window.addEventListener('storage', event => {
+        if (event.key === APP_IMPORT_STORAGE_KEY) {
+            tryAutoImportFromLinkedApp();
+        }
+    });
     formElement.querySelectorAll('input, select, textarea').forEach(field => {
         field.addEventListener('blur', () => validateField(field, true));
     });
@@ -1374,7 +1399,7 @@
         return `<option value="">Select from extracted TGS sheets</option>${options}`;
     }
 
-    function openIntegratedTool(kind) {
+    function openIntegratedTool(kind, targetId = '') {
         const storageKey = `ctmp_${kind}_app_url`;
         const url = localStorage.getItem(storageKey) || DEFAULT_APP_URLS[kind] || '';
 
@@ -1383,29 +1408,159 @@
             return;
         }
 
+        pendingImportContext = { kind, targetId };
+        localStorage.setItem(APP_PENDING_TARGET_KEY, JSON.stringify(pendingImportContext));
         localStorage.setItem(storageKey, url);
         window.open(url, '_blank', 'noopener,noreferrer');
     }
 
-    async function importIntoStageField(targetId) {
+    function parseImportedPayload(rawValue, fallbackKind = '') {
+        if (!rawValue) return null;
+
+        if (typeof rawValue !== 'string') {
+            return { kind: fallbackKind, data: rawValue };
+        }
+
+        const trimmed = rawValue.trim();
+        if (!trimmed) return null;
+
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object') {
+                if (!parsed.kind && fallbackKind) parsed.kind = fallbackKind;
+                return parsed;
+            }
+        } catch {
+            // Fall back to plain text import.
+        }
+
+        return { kind: fallbackKind, data: { text: trimmed } };
+    }
+
+    function setInputValue(id, value) {
+        const field = document.getElementById(id);
+        if (field && value != null && String(value).trim() !== '') {
+            field.value = value;
+        }
+    }
+
+    function buildImportedSummary(payload, fallbackKind = '') {
+        const kind = fallbackKind || payload?.kind || payload?.type || '';
+        const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+
+        if (!data) return '';
+        if (typeof data === 'string') return data.trim();
+        if (typeof data.text === 'string' && data.text.trim()) return data.text.trim();
+
+        const lines = [];
+
+        if (kind === 'tia' || ['aadt', 'aadt_target_year', 'vcr', 'vcr_score', 'los', 'los_rating', 'queue_length', 'queue_length_m'].some(key => data[key] != null)) {
+            lines.push('Traffic Impact Assessment Summary');
+            if (data.jurisdiction) lines.push(`Jurisdiction: ${data.jurisdiction}`);
+            if (data.target_year || data.targetYear) lines.push(`Target Year: ${data.target_year || data.targetYear}`);
+            if (data.aadt_target_year || data.aadt || data.aadt_volume) lines.push(`AADT: ${data.aadt_target_year || data.aadt || data.aadt_volume}`);
+            if (data.vcr_score || data.vcr) lines.push(`VCR: ${data.vcr_score || data.vcr}`);
+            if (data.los_rating || data.los) lines.push(`LOS: ${data.los_rating || data.los}`);
+            if (data.queue_length_m || data.queue_length || data.queue) lines.push(`Queue Length: ${data.queue_length_m || data.queue_length || data.queue} m`);
+            if (data.notes) lines.push(`Notes: ${data.notes}`);
+            return lines.join('\n');
+        }
+
+        const riskEntries = data.risk_matrix || data.risk_assessment_table || data.hazards;
+        if (kind === 'risk' || Array.isArray(riskEntries)) {
+            lines.push('Risk Assessment Summary');
+            (riskEntries || []).forEach(item => {
+                lines.push(`• ${item.hazard || 'Hazard'} — ${item.control_measure || item.control || item.comment || ''} (${item.residual_risk || 'Residual risk not stated'})`);
+            });
+            return lines.join('\n');
+        }
+
+        const vehicular = data.vehicular_options || data.vehicular || [];
+        const pedestrian = data.pedestrian_options || data.vulnerable_users || data.pedestrian || [];
+        if (kind === 'option' || vehicular.length || pedestrian.length) {
+            lines.push('Option Analysis Summary');
+            vehicular.forEach(item => lines.push(`• Vehicular: ${item.option || 'Option'} — ${item.comment || item.features || ''}`));
+            pedestrian.forEach(item => lines.push(`• Pedestrian / Vulnerable Users: ${item.option || 'Option'} — ${item.comment || item.reasoning || ''}`));
+            return lines.join('\n');
+        }
+
+        return JSON.stringify(data, null, 2);
+    }
+
+    function applyImportedPayload(payload, targetId = '', fallbackKind = '') {
+        const field = targetId ? document.getElementById(targetId) : null;
+        const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+        const summary = buildImportedSummary(payload, fallbackKind);
+
+        if (data && typeof data === 'object') {
+            setInputValue('jurisdiction', data.jurisdiction || data.engine || '');
+            setInputValue('targetYear', data.target_year || data.targetYear || '');
+            setInputValue('aadtVolume', data.aadt_target_year || data.aadt || data.aadt_volume || data.base_volume || '');
+            setInputValue('dataSource', data.data_source || data.source || '');
+        }
+
+        if (field && summary) {
+            field.value = summary;
+            validateField(field, true);
+        }
+
+        updateSectionStatuses();
+        saveDraftToLocalStorage();
+        return Boolean(summary || data);
+    }
+
+    function tryAutoImportFromLinkedApp() {
+        if (!pendingImportContext) {
+            const savedPending = localStorage.getItem(APP_PENDING_TARGET_KEY);
+            if (savedPending) {
+                try {
+                    pendingImportContext = JSON.parse(savedPending);
+                } catch {
+                    pendingImportContext = null;
+                }
+            }
+        }
+
+        const rawPayload = localStorage.getItem(APP_IMPORT_STORAGE_KEY);
+        if (!rawPayload || !pendingImportContext) return false;
+
+        const payload = parseImportedPayload(rawPayload, pendingImportContext.kind);
+        const imported = applyImportedPayload(payload, pendingImportContext.targetId, pendingImportContext.kind);
+
+        if (imported) {
+            localStorage.removeItem(APP_IMPORT_STORAGE_KEY);
+            localStorage.removeItem(APP_PENDING_TARGET_KEY);
+            pendingImportContext = null;
+        }
+
+        return imported;
+    }
+
+    async function importIntoStageField(targetId, preferredKind = '') {
         const field = document.getElementById(targetId);
         if (!field) return;
 
-        try {
-            const text = await navigator.clipboard.readText();
-            if (!text.trim()) {
-                throw new Error('Clipboard is empty.');
-            }
-            field.value = text.trim();
-        } catch (error) {
-            const manualText = window.prompt('Paste the imported content for this field:', field.value || '');
-            if (manualText == null) return;
-            field.value = manualText;
+        pendingImportContext = { kind: preferredKind, targetId };
+        localStorage.setItem(APP_PENDING_TARGET_KEY, JSON.stringify(pendingImportContext));
+
+        if (tryAutoImportFromLinkedApp()) {
+            return;
         }
 
-        validateField(field, true);
-        updateSectionStatuses();
-        saveDraftToLocalStorage();
+        try {
+            const text = await navigator.clipboard.readText();
+            const payload = parseImportedPayload(text, preferredKind);
+            if (!payload) {
+                throw new Error('Clipboard is empty.');
+            }
+            applyImportedPayload(payload, targetId, preferredKind);
+        } catch (error) {
+            const manualText = window.prompt('Paste exported app content or JSON for this field:', field.value || '');
+            if (manualText == null) return;
+            const payload = parseImportedPayload(manualText, preferredKind);
+            if (!payload) return;
+            applyImportedPayload(payload, targetId, preferredKind);
+        }
     }
 
     function copyStageFieldFromAbove(targetId, group) {
@@ -1435,11 +1590,11 @@
         if (!stagePlanner) return;
 
         stagePlanner.querySelectorAll('[data-open-tool]').forEach(button => {
-            button.addEventListener('click', () => openIntegratedTool(button.dataset.openTool));
+            button.addEventListener('click', () => openIntegratedTool(button.dataset.openTool, button.dataset.openTarget || ''));
         });
 
         stagePlanner.querySelectorAll('[data-import-target]').forEach(button => {
-            button.addEventListener('click', () => importIntoStageField(button.dataset.importTarget));
+            button.addEventListener('click', () => importIntoStageField(button.dataset.importTarget, button.dataset.importKind || ''));
         });
 
         stagePlanner.querySelectorAll('[data-copy-target]').forEach(button => {
@@ -1499,8 +1654,8 @@
                         <div class="form-group stage-field-group">
                             <label for="${riskId}">2. Risk Assessment</label>
                             <div class="stage-button-row">
-                                <button type="button" class="mini-button" data-open-tool="risk">Open Risk App</button>
-                                <button type="button" class="mini-button" data-import-target="${riskId}">Import / Paste</button>
+                                <button type="button" class="mini-button" data-open-tool="risk" data-open-target="${riskId}">Open Risk App</button>
+                                <button type="button" class="mini-button" data-import-target="${riskId}" data-import-kind="risk">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${riskId}" data-copy-group="risk">Copy above</button>` : ''}
                             </div>
                             <textarea id="${riskId}" name="${riskId}" data-stage-group="risk" placeholder="Import the selected risks or paste the risk register summary for this stage.">${escapeHtml(retainedValues[riskId] || '')}</textarea>
@@ -1509,8 +1664,8 @@
                         <div class="form-group stage-field-group">
                             <label for="${tiaId}">3. Traffic Impact Assessment</label>
                             <div class="stage-button-row">
-                                <button type="button" class="mini-button" data-open-tool="tia">Open TIA App</button>
-                                <button type="button" class="mini-button" data-import-target="${tiaId}">Import / Paste</button>
+                                <button type="button" class="mini-button" data-open-tool="tia" data-open-target="${tiaId}">Open TIA App</button>
+                                <button type="button" class="mini-button" data-import-target="${tiaId}" data-import-kind="tia">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${tiaId}" data-copy-group="tia">Copy above</button>` : ''}
                             </div>
                             <textarea id="${tiaId}" name="${tiaId}" data-stage-group="tia" placeholder="Paste queue lengths, LOS, VCR and any temporary traffic impact notes here.">${escapeHtml(retainedValues[tiaId] || '')}</textarea>
@@ -1519,8 +1674,8 @@
                         <div class="form-group stage-field-group">
                             <label for="${optionId}">4. Option Analysis</label>
                             <div class="stage-button-row">
-                                <button type="button" class="mini-button" data-open-tool="option">Open Option App</button>
-                                <button type="button" class="mini-button" data-import-target="${optionId}">Import / Paste</button>
+                                <button type="button" class="mini-button" data-open-tool="option" data-open-target="${optionId}">Open Option App</button>
+                                <button type="button" class="mini-button" data-import-target="${optionId}" data-import-kind="option">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${optionId}" data-copy-group="option">Copy above</button>` : ''}
                             </div>
                             <textarea id="${optionId}" name="${optionId}" data-stage-group="option" placeholder="Paste the selected option analysis outcome for this stage.">${escapeHtml(retainedValues[optionId] || '')}</textarea>
@@ -1603,6 +1758,9 @@
         const constructionActivity = payload.constructionActivity || '';
         const stageText = stages.length ? stages.join(', ') : 'General construction works';
         const trafficNotes = payload.trafficManagementNotes || '';
+        const jurisdiction = payload.jurisdiction || 'TMR';
+        const targetYear = payload.targetYear || new Date().getFullYear();
+        const desktopRiskSummary = payload.riskAssessmentSummary || '';
         const tgsRef = payload.tgsReference || '';
         const tgsNum = payload.tgsNumber || '';
         const startDate = payload.startDate || 'TBC';
@@ -1749,6 +1907,12 @@
 
                 <h3>3.6 Coordination with Nearby Worksites</h3>
                 <p class="doc-boilerplate">The Site Supervisor and Nominated Traffic Officer are to coordinate traffic management with any adjacent worksites to minimise competing controls, excessive queueing, and driver confusion.</p>
+                ${desktopRiskSummary ? `
+                    <div class="doc-subblock">
+                        <p><strong>Desktop Risk Assessment Summary</strong></p>
+                        <p>${nl2br(desktopRiskSummary)}</p>
+                    </div>
+                ` : ''}
 
                 <hr class="doc-section-break">
 
@@ -1894,7 +2058,7 @@
                 <p class="doc-boilerplate">Haulage activities are to use approved routes where required and are to avoid unnecessary impacts to sensitive land uses and peak periods.</p>
 
                 <h3>8.5 Traffic Volume Estimation &amp; Traffic Impact Analysis</h3>
-                <div class="doc-placeholder">Insert AADT table, traffic impact analysis table, and queue length estimation. Use the data source selected in the form (${e(payload.dataSource || 'hourly_profile')}).</div>
+                <div class="doc-placeholder">Insert AADT table, traffic impact analysis table, and queue length estimation. Use the selected jurisdiction (${e(jurisdiction)}), target year (${e(targetYear)}), and traffic data source (${e(payload.dataSource || 'hourly_profile')}).</div>
 
                 <h3>8.6 TTM Implementation</h3>
                 ${stages.length ? stages.map((stage, i) => {
@@ -2204,26 +2368,53 @@
     }
 
     function applyTgsSuggestions(data) {
+        const projectName = document.getElementById('projectName');
         const projectLocation = document.getElementById('projectLocation');
+        const localGovernmentArea = document.getElementById('localGovernmentArea');
+        const clientCompany = document.getElementById('clientCompany');
+        const trafficControlCompany = document.getElementById('trafficControlCompany');
         const constructionActivity = document.getElementById('constructionActivity');
-        const trafficManagementNotes = document.getElementById('trafficManagementNotes');
         const tgsReference = document.getElementById('tgsReference');
 
-        if (data.siteLocation && !projectLocation.value.trim()) {
+        if (projectName && data.projectName && !projectName.value.trim()) {
+            projectName.value = data.projectName;
+        }
+        if (projectLocation && data.siteLocation && !projectLocation.value.trim()) {
             projectLocation.value = data.siteLocation;
         }
-        if (data.methodology && !constructionActivity.value.trim()) {
+        if (localGovernmentArea && data.localGovernmentArea && !localGovernmentArea.value.trim()) {
+            localGovernmentArea.value = data.localGovernmentArea;
+        }
+        if (clientCompany && data.clientCompany && !clientCompany.value.trim()) {
+            clientCompany.value = data.clientCompany;
+        }
+        if (trafficControlCompany && data.trafficControlCompany && !trafficControlCompany.value.trim()) {
+            trafficControlCompany.value = data.trafficControlCompany;
+        }
+        if (constructionActivity && data.methodology && !constructionActivity.value.trim()) {
             constructionActivity.value = data.methodology;
         }
-        if (data.optionAnalysis && !trafficManagementNotes.value.trim()) {
-            trafficManagementNotes.value = data.optionAnalysis;
-        }
-        if (data.sheetReference && !tgsReference.value.trim()) {
+        if (tgsReference && data.sheetReference && !tgsReference.value.trim()) {
             tgsReference.value = data.sheetReference;
         }
 
         applySuggestedStages(data.stages || []);
         renderStagePlanner();
+
+        const firstInfoField = stagePlanner?.querySelector('[id^="stageInfo_"]');
+        if (firstInfoField && !String(firstInfoField.value || '').trim()) {
+            const infoParts = [data.methodology, data.crossStreets, data.roadSpeed].filter(Boolean);
+            if (infoParts.length) {
+                firstInfoField.value = infoParts.join('\n');
+            }
+        }
+
+        if (data.optionAnalysis) {
+            const firstOptionField = stagePlanner?.querySelector('[id^="stageOptionAnalysis_"]');
+            if (firstOptionField && !String(firstOptionField.value || '').trim()) {
+                firstOptionField.value = data.optionAnalysis;
+            }
+        }
 
         const stageList = (data.stages || []).length ? data.stages.map(item => `<li>${escapeHtml(item)}</li>`).join('') : '<li>No staging was detected.</li>';
         tgsSuggestionPanel.innerHTML = `

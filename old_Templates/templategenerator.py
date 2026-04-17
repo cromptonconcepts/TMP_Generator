@@ -1,5 +1,7 @@
 import re
 import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
 from copy import deepcopy
 from html import unescape
 from docx import Document
@@ -23,7 +25,6 @@ def set_row_text(row, values):
     for index, cell in enumerate(row.cells):
         cell.text = values[index] if index < len(values) else ""
 
-
 def insert_control_row(table, row_index, tag_text, before=True):
     reference_row = table.rows[row_index]._tr
     new_row = deepcopy(reference_row)
@@ -32,14 +33,15 @@ def insert_control_row(table, row_index, tag_text, before=True):
     target_row = table.rows[row_index] if before else table.rows[row_index + 1]
     set_row_text(target_row, [tag_text])
 
-
 def trim_table_after_row(table, row_index):
     while len(table.rows) > row_index + 1:
         table._tbl.remove(table.rows[row_index + 1]._tr)
 
-
 def apply_structured_table_loops(doc):
     for table in doc.tables:
+        if not table.rows:
+            continue
+            
         headers = [sanitize_tag_name(cell.text) if cell.text.strip() else '' for cell in table.rows[0].cells]
 
         if headers == ["", "name", "signature", "position", "date"]:
@@ -89,38 +91,25 @@ def apply_structured_table_loops(doc):
             insert_control_row(table, 1, f"{{%tr for row in {loop_name} %}}", before=True)
             insert_control_row(table, 2, "{%tr endfor %}", before=False)
 
-
 def convert_to_jinja_tags(input_file, output_file):
-    """
-    Scans a Word document for <<tags>> and replaces them with valid {{ jinja_tags }}.
-    Handles both standard paragraphs and tables.
-    """
-    print(f"Processing: {input_file}...")
+    print(f"Processing: {os.path.basename(input_file)}...")
     doc = Document(input_file)
     pattern = re.compile(r"<<(.*?)>>")
 
     def replace_text_in_paragraph(paragraph):
-        # Read the full text of the paragraph to bypass Word's internal run splitting
         full_text = paragraph.text
         if pattern.search(full_text):
-            # Replace <<tag>> with a safe Jinja variable name
             new_text = pattern.sub(lambda m: "{{ " + sanitize_tag_name(m.group(1)) + " }}", full_text)
-            
-            # Clear existing runs to prevent duplicate text
             for run in paragraph.runs:
                 run.text = ""
-                
-            # Assign the new text to the first run to preserve paragraph-level formatting
             if paragraph.runs:
                 paragraph.runs[0].text = new_text
             else:
                 paragraph.add_run(new_text)
 
-    # 1. Process standard document paragraphs
     for para in doc.paragraphs:
         replace_text_in_paragraph(para)
 
-    # 2. Process paragraphs inside tables
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
@@ -129,32 +118,34 @@ def convert_to_jinja_tags(input_file, output_file):
 
     apply_structured_table_loops(doc)
     doc.save(output_file)
-    print(f"Success! Saved formatted template to: {output_file}\n")
+    print(f"Success! Saved to: {output_file}\n")
 
 if __name__ == "__main__":
-    base_dir = os.path.dirname(__file__)
+    # Initialize Tkinter and hide the main window
+    root = tk.Tk()
+    root.withdraw()
 
-    # List of your three original templates in the current directory
-    templates_to_convert = [
-        "Full_TMP.docx",
-        "Medium_TMP.docx",
-        "Mini_TMP.docx"
-    ]
+    # Ask user to select files
+    print("Please select the Word documents you wish to convert...")
+    selected_files = filedialog.askopenfilenames(
+        title="Select Word Templates",
+        filetypes=[("Word Documents", "*.docx")]
+    )
 
-    # Create the app output folder to hold the processed templates
-    output_folder = os.path.abspath(os.path.join(base_dir, "..", "New_Templates"))
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    if not selected_files:
+        print("No files selected. Exiting.")
+    else:
+        # Define output folder
+        base_dir = os.path.dirname(selected_files[0])
+        output_folder = os.path.abspath(os.path.join(base_dir, "New_Templates"))
+        
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
-    # Loop through and convert each file
-    for filename in templates_to_convert:
-        input_path = os.path.join(base_dir, filename)
-        output_path = os.path.join(output_folder, filename)
-
-        # Check if the original file exists before trying to convert
-        if os.path.exists(input_path):
+        for input_path in selected_files:
+            filename = os.path.basename(input_path)
+            output_path = os.path.join(output_folder, filename)
             convert_to_jinja_tags(input_path, output_path)
-        else:
-            print(f"Error: Could not find '{input_path}'.")
 
-    print(f"All done! Check the '{output_folder}' folder for your new templates.")
+        messagebox.showinfo("Done", f"Processing complete!\nFiles saved in: {output_folder}")
+        print(f"All done! Check the '{output_folder}' folder.")
