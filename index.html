@@ -31,7 +31,10 @@
         body {
             margin: 0;
             font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
-            background: linear-gradient(180deg, #eef3f8 0%, #f7f9fc 100%);
+            background:
+                radial-gradient(circle at top left, rgba(15, 34, 53, 0.08), transparent 28%),
+                radial-gradient(circle at top right, rgba(211, 145, 40, 0.12), transparent 24%),
+                linear-gradient(180deg, #eef3f8 0%, #f7f9fc 100%);
             color: var(--color-text);
         }
 
@@ -48,11 +51,39 @@
             position: sticky;
             top: 20px;
             align-self: start;
-            background: var(--color-primary-strong);
+            background: linear-gradient(180deg, #102438 0%, #18324b 100%);
             color: white;
             border-radius: var(--radius-lg);
             padding: 18px;
             box-shadow: var(--shadow-card);
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+
+        .sidebar::before,
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            inset: auto;
+            border-radius: 999px;
+            pointer-events: none;
+            opacity: 0.32;
+        }
+
+        .sidebar::before {
+            width: 180px;
+            height: 180px;
+            top: -90px;
+            right: -70px;
+            background: radial-gradient(circle, rgba(242, 184, 91, 0.42) 0%, transparent 72%);
+        }
+
+        .sidebar::after {
+            width: 150px;
+            height: 150px;
+            bottom: -88px;
+            left: -60px;
+            background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 74%);
         }
 
         .brand-block {
@@ -98,9 +129,13 @@
         }
 
         .sidebar-note {
-            color: rgba(255,255,255,0.78);
+            color: rgba(255,255,255,0.82);
             font-size: 0.92rem;
             margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         .section-nav {
@@ -125,18 +160,346 @@
         .nav-status.complete, .section-status.complete { color: var(--color-success); }
         .nav-status.partial, .section-status.partial { color: var(--color-accent); }
 
+        .legacy-section-nav { display: none; }
+
+        .wizard-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 14px;
+            max-height: calc(100vh - 260px);
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .wizard-nav-button {
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+            color: rgba(255,255,255,0.9);
+            border-radius: 16px;
+            padding: 12px 13px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font: inherit;
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .wizard-nav-button::before {
+            content: '';
+            position: absolute;
+            inset: 10px auto 10px 0;
+            width: 3px;
+            border-radius: 999px;
+            background: transparent;
+        }
+
+        .wizard-nav-button:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.07) 100%);
+            transform: translateY(-1px);
+        }
+
+        .wizard-nav-button.active {
+            background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.11) 100%);
+            border-color: rgba(242, 184, 91, 0.45);
+            box-shadow: inset 0 0 0 1px rgba(242, 184, 91, 0.18), 0 10px 24px rgba(0, 0, 0, 0.14);
+        }
+
+        .wizard-nav-button.active::before {
+            background: linear-gradient(180deg, #f2b85b 0%, #d39128 100%);
+        }
+
+        .wizard-nav-label { display: flex; flex-direction: column; gap: 2px; }
+        .wizard-nav-title { font-weight: 700; font-size: 0.96rem; }
+        .wizard-nav-subtitle { font-size: 0.78rem; color: rgba(255,255,255,0.68); }
+        .wizard-nav-badge {
+            min-width: 30px;
+            text-align: center;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: rgba(255,255,255,0.72);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+        }
+
+        .wizard-nav-button.complete .wizard-nav-badge { color: #8fe0b5; }
+        .wizard-nav-button.partial .wizard-nav-badge { color: #ffd079; }
+
+        .wizard-shell {
+            padding: 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow: 0 18px 40px rgba(15, 34, 53, 0.06);
+        }
+
+        .wizard-shell-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .wizard-shell-title { margin: 4px 0 6px; color: var(--color-primary-strong); font-size: 1.45rem; }
+        .wizard-shell-counter { margin-top: 8px; }
+        .wizard-nav-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .wizard-progress-track {
+            margin-top: 16px;
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #e9eef4 0%, #dfe8f1 100%);
+            border: 1px solid #d6e0ea;
+        }
+
+        .wizard-progress-bar {
+            display: block;
+            height: 100%;
+            width: 6.25%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #d39128 0%, #f2b85b 100%);
+            box-shadow: 0 0 0 1px rgba(211, 145, 40, 0.18);
+            transition: width 0.22s ease;
+        }
+
+        .wizard-step-meta {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .wizard-step-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #eef4fa;
+            color: var(--color-primary);
+            border: 1px solid #d6e0ea;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .wizard-step-pill.section {
+            background: #fff8ea;
+            border-color: rgba(211, 145, 40, 0.28);
+            color: #7a4d00;
+        }
+
+        .wizard-step-pill.signal {
+            background: #edf8f1;
+            border-color: rgba(25, 116, 76, 0.2);
+            color: var(--color-success);
+        }
+
+        .wizard-section-hidden { display: none !important; }
+
+        .wizard-preview-shell {
+            padding: 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            box-shadow: 0 18px 40px rgba(15, 34, 53, 0.05);
+        }
+
+        .wizard-preview-panel {
+            margin-top: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            padding: 20px;
+            min-height: 280px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 28px rgba(15, 34, 53, 0.06);
+        }
+
+        .wizard-preview-panel .document-page { max-width: none; }
+        .wizard-home-card {
+            border: 1px solid var(--color-border);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f7fbff 0%, #eef5fb 100%);
+            padding: 20px;
+        }
+
+        .wizard-home-card h3 { margin-top: 0; }
+        .wizard-home-stats,
+        .wizard-context-grid,
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .wizard-home-stat,
+        .wizard-context-card,
+        .hero-stat {
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.9);
+            padding: 14px;
+        }
+
+        .wizard-home-stat span,
+        .wizard-context-card span,
+        .hero-stat span {
+            display: block;
+            color: var(--color-muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .wizard-home-stat strong,
+        .wizard-context-card strong,
+        .hero-stat strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 1.15rem;
+            color: var(--color-primary-strong);
+        }
+
+        .wizard-home-stat small,
+        .wizard-context-card small,
+        .hero-stat small {
+            display: block;
+            margin-top: 8px;
+            color: var(--color-muted);
+            line-height: 1.45;
+        }
+
+        .wizard-toc-grid {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 10px;
+        }
+
+        .wizard-toc-card {
+            border-radius: 14px;
+            border: 1px solid rgba(24, 50, 75, 0.09);
+            background: rgba(255,255,255,0.92);
+            padding: 12px 14px;
+            min-height: 82px;
+        }
+
+        .wizard-toc-card strong {
+            display: block;
+            color: var(--color-primary-strong);
+            margin-bottom: 4px;
+        }
+
+        .wizard-toc-card small {
+            color: var(--color-muted);
+            line-height: 1.45;
+        }
+
+        .wizard-stage-pills {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .wizard-stage-pill {
+            display: inline-flex;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--color-accent-soft);
+            color: #7a4d00;
+            border: 1px solid rgba(211, 145, 40, 0.24);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .wizard-inline-alert {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(211, 145, 40, 0.3);
+            background: linear-gradient(180deg, #fff8ea 0%, #fff3d9 100%);
+            color: #7a4d00;
+        }
+
+        .wizard-context-grid {
+            margin-bottom: 16px;
+        }
+
+        .wizard-context-card ul {
+            margin: 10px 0 0 18px;
+            padding: 0;
+        }
+
+        .wizard-context-card li {
+            margin-bottom: 6px;
+            color: var(--color-text);
+        }
+
+        .wizard-page-tools { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tgs-preview-chip {
+            display: inline-flex;
+            margin: 8px 0 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #eef4fa;
+            border: 1px solid #d6e0ea;
+            color: var(--color-primary);
+            font-size: 0.76rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .upload-zone-compact {
+            padding: 14px;
+            text-align: left;
+        }
+
+        .logo-preview {
+            margin-top: 10px;
+            max-width: 220px;
+            max-height: 90px;
+            display: none;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 8px;
+        }
+
         .container {
             background: transparent;
             padding: 0;
         }
 
         .hero-header {
-            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+            background:
+                radial-gradient(circle at top right, rgba(242, 184, 91, 0.24), transparent 24%),
+                linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-strong) 100%);
             border-radius: var(--radius-lg);
             padding: 22px 24px;
             color: white;
             box-shadow: var(--shadow-card);
             margin-bottom: 18px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .hero-header-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+            gap: 18px;
+            align-items: end;
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 1;
         }
 
         .hero-header h1 {
@@ -148,6 +511,36 @@
         }
 
         .hero-header p { margin: 0; color: rgba(255,255,255,0.85); }
+
+        .hero-badges {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: rgba(255,255,255,0.92);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .hero-stat {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.12);
+            backdrop-filter: blur(6px);
+        }
+
+        .hero-stat strong { color: #fff; }
+
+        .hero-stat small,
+        .hero-stat span { color: rgba(255,255,255,0.72); }
 
         .form-section,
         #templateIndexSection {
@@ -383,6 +776,16 @@
         .doc-cover-meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 18px 0; }
         .doc-cover-meta dt { font-weight: 700; color: #444; text-transform: uppercase; font-size: 0.82rem; letter-spacing: 0.04em; }
         .doc-cover-meta dd { margin: 0; font-weight: 600; color: #111; }
+        .doc-cover-logo-wrap { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+        .doc-cover-client-logo {
+            max-width: 220px;
+            max-height: 88px;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 8px;
+        }
         .doc-cover-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 18px; font-size: 0.9rem; }
         .doc-cover-footer span { font-weight: 700; color: #333; }
         .doc-section-break { border: 0; border-top: 1px solid #ccc; margin: 28px 0; }
@@ -432,6 +835,9 @@
             .editor-layout { grid-template-columns: 1fr; }
             .document-editor { min-height: 620px; }
             .toc-list { columns: 1; }
+            .wizard-shell-header { flex-direction: column; }
+            .hero-header-grid { grid-template-columns: 1fr; }
+            .wizard-nav { max-height: none; }
         }
 
         @media (max-width: 700px) {
@@ -454,8 +860,9 @@
                 <div class="brand-title">TMP Workflow</div>
             </div>
         </div>
-        <div class="sidebar-note">Jump between sections and track form completion as you go.</div>
-        <nav class="section-nav">
+        <div class="sidebar-note">Move through the Full TMP one page at a time and assemble the final draft after all chapters are reviewed.</div>
+        <div id="wizardNav" class="wizard-nav"></div>
+        <nav class="section-nav legacy-section-nav">
             <a href="#section-1"><span>1. Template</span><span class="nav-status" id="nav-status-1">○</span></a>
             <a href="#section-2"><span>2. Analyse TGS</span><span class="nav-status" id="nav-status-2">○</span></a>
             <a href="#section-3"><span>3. Project Overview</span><span class="nav-status" id="nav-status-3">○</span></a>
@@ -463,17 +870,41 @@
             <a href="#section-5"><span>5. Scope and Schedule</span><span class="nav-status" id="nav-status-5">○</span></a>
             <a href="#section-6"><span>6. Contacts</span><span class="nav-status" id="nav-status-6">○</span></a>
             <a href="#section-7"><span>7. Staging</span><span class="nav-status" id="nav-status-7">○</span></a>
-            <a href="#section-8"><span>8. Traffic Assessment</span><span class="nav-status" id="nav-status-8">○</span></a>
-            <a href="#section-9"><span>9. References</span><span class="nav-status" id="nav-status-9">○</span></a>
+            <a href="#section-9"><span>8. Attachments</span><span class="nav-status" id="nav-status-9">○</span></a>
         </nav>
     </aside>
 
     <main class="container">
         <div class="hero-header">
-            <div class="brand-eyebrow">Crompton Concepts</div>
-            <h1>CTMP / TMP Generator</h1>
-            <p>Professional traffic management documentation for civil, infrastructure, and construction staging workflows.</p>
-            <div style="margin-top: 12px; display: inline-block; padding: 6px 12px; background: #fff4df; color: #7a4d00; border: 1px solid rgba(211, 145, 40, 0.55); border-radius: 999px; font-size: 0.85rem; font-weight: 700;">Under development • Beta use only</div>
+            <div class="hero-header-grid">
+                <div class="hero-copy">
+                    <div class="brand-eyebrow">Crompton Concepts</div>
+                    <h1>CTMP / TMP Generator</h1>
+                    <p>Professional traffic management documentation for civil, infrastructure, and construction staging workflows.</p>
+                    <div class="hero-badges">
+                        <span class="hero-badge">Step-by-step TMP drafting</span>
+                        <span class="hero-badge">Live chapter preview</span>
+                        <span class="hero-badge">TGS-driven staging</span>
+                    </div>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span>Template</span>
+                        <strong id="heroTemplateMode">Not selected</strong>
+                        <small>Choose Full, Medium, or Mini before drafting.</small>
+                    </div>
+                    <div class="hero-stat">
+                        <span>TGS pages</span>
+                        <strong id="heroPageCount">0</strong>
+                        <small>Preview sheets extracted from the uploaded TGS PDF.</small>
+                    </div>
+                    <div class="hero-stat">
+                        <span>Detected stages</span>
+                        <strong id="heroStageCount">0</strong>
+                        <small>High-confidence construction stages available to the planner.</small>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <form id="ctmpGeneratorForm" action="/generate" method="POST" enctype="multipart/form-data">
@@ -486,6 +917,22 @@
                 </div>
             </div>
             <div class="validation-summary" id="validationSummary"></div>
+            <section class="form-section wizard-shell" id="wizardShell">
+                <div class="wizard-shell-header">
+                    <div>
+                        <div class="brand-eyebrow">Step-by-step TMP builder</div>
+                        <h3 class="wizard-shell-title" id="wizardStepTitle">Home</h3>
+                        <div class="field-note" id="wizardStepDescription">Use the attached Full TMP structure to complete one page at a time.</div>
+                    </div>
+                    <div class="wizard-nav-actions">
+                        <span class="summary-chip wizard-shell-counter" id="wizardStepCounter">1 / 16</span>
+                        <button type="button" class="ghost-button" id="wizardPrevButton">← Previous</button>
+                        <button type="button" class="mini-button" id="wizardNextButton">Next →</button>
+                    </div>
+                </div>
+                <div class="wizard-progress-track"><span class="wizard-progress-bar" id="wizardProgressBar"></span></div>
+                <div class="wizard-step-meta" id="wizardStepMeta"></div>
+            </section>
         <details class="form-section" id="section-1" data-section="1" open>
             <summary>
                 <span class="section-heading"><span class="section-icon">🧭</span><span>1. Select TMP Document Type</span></span>
@@ -613,6 +1060,16 @@
             <div class="form-group">
                 <label for="documentReferencePreview">Document Reference Preview</label>
                 <input type="text" id="documentReferencePreview" readonly placeholder="Auto-generated from CC Number and Revision Number">
+            </div>
+            <div class="form-group">
+                <label for="clientLogo">Client Logo</label>
+                <label class="upload-zone upload-zone-compact" for="clientLogo">
+                    <input type="file" id="clientLogo" accept="image/*">
+                    <div class="upload-title">Upload client logo for the TMP cover page</div>
+                    <div class="upload-meta">PNG, JPG, SVG, or WEBP logo files are supported.</div>
+                </label>
+                <input type="hidden" id="clientLogoData" name="clientLogoData">
+                <img id="clientLogoPreview" class="logo-preview" alt="Client logo preview">
             </div>
             <div class="form-group">
                 <label for="tmrCert82Number">TMR CERT82 Number</label>
@@ -845,75 +1302,50 @@
                 <label><input type="checkbox" name="stages" value="Line Marking and Signage"> Line Marking and Signage</label>
                 <label><input type="checkbox" name="stages" value="Final Traffic Switch"> Final Traffic Switch</label>
             </div>
-            <div class="field-note" style="margin-top: 10px;">Selecting a stage creates a detailed stage planner below. Repeated TIA or option analysis items can be copied from the stage above.</div>
+            <div class="field-note" style="margin-top: 10px;">Selecting a stage creates a detailed stage planner below. Where required, TIA and options information can be copied from the stage above.</div>
             <div id="stagePlanner" class="stage-planner">
                 <div class="reference-card">
                     <div class="reference-card-title">No stages selected yet</div>
-                    <div class="field-note">Choose one or more construction stages to define information, risk assessment, traffic impact, option analysis, TGS reference, and misc notes for each stage.</div>
+                    <div class="field-note">Choose one or more construction stages to define impacts and constraints, risk assessment, TIA if required, options analysis and selection, TGS reference, and misc information for each stage.</div>
                 </div>
             </div>
         </div>
 
         </details>
 
-        <details class="form-section" id="section-8" data-section="8" open>
-            <summary>
-                <span class="section-heading"><span class="section-icon">📊</span><span>8. Traffic Impact Assessment Parameters</span></span>
-                <span class="section-status" id="status-8">○</span>
-            </summary>
-            <div class="section-body">
-                <div class="field-grid">
-                    <div class="form-group">
-                        <label for="jurisdiction">Jurisdiction Engine</label>
-                        <select id="jurisdiction" name="jurisdiction" required>
-                            <option value="TMR">TMR (Department of Transport and Main Roads)</option>
-                            <option value="Gold Coast">Gold Coast City Council</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="targetYear">Target Year</label>
-                        <input type="number" id="targetYear" name="target_year" placeholder="e.g., 2026" required>
-                        <div class="field-note">All traffic calculations will be projected against this target year.</div>
-                    </div>
-                    <div class="form-group">
-                        <label for="aadtVolume">Current AADT Volume</label>
-                        <input type="number" id="aadtVolume" name="aadt_volume" placeholder="Current AADT Volume">
-                        <div class="field-note">Optional base traffic volume used for automated TIA calculations.</div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="dataSource">Primary Traffic Volume Data Source</label>
-                    <select id="dataSource" name="dataSource" required>
-                        <option value="hourly_profile">Hourly Database Data</option>
-                        <option value="standard_estimate">Calculated Estimates</option>
-                    </select>
-                    <div class="field-note">The system will automatically prioritize hourly database data over calculated estimates whenever empirical data is present.</div>
-                </div>
-            </div>
-        </details>
-
         <details class="form-section" id="section-9" data-section="9" open>
             <summary>
-                <span class="section-heading"><span class="section-icon">📚</span><span>9. TGS References and Appendices</span></span>
+                <span class="section-heading"><span class="section-icon">📎</span><span>8. Supporting Attachments</span></span>
                 <span class="section-status" id="status-9">○</span>
             </summary>
             <div class="section-body">
-            <div class="form-group">
-                <label for="tgsReference">TGS Reference</label>
-                <input type="text" id="tgsReference" name="tgsReference" placeholder="e.g., TGS-001">
-            </div>
-            <div class="form-group">
-                <label for="tgsNumber">TGS Number</label>
-                <input type="text" id="tgsNumber" name="tgsNumber" placeholder="e.g., 01">
-            </div>
-            <div class="field-note">The TGS upload and analysis step is handled at the top of the form.</div>
+                <div class="form-group">
+                    <label for="supportingFiles">Upload supporting files to attach</label>
+                    <label class="upload-zone" for="supportingFiles">
+                        <input type="file" id="supportingFiles" name="supportingFiles" multiple>
+                        <div class="upload-title">Drop files here or click to browse</div>
+                        <div class="upload-meta" id="supportingFilesMeta">No supporting files selected yet.</div>
+                    </label>
+                    <div class="field-note">Upload any extra files to be attached with the CTMP package, such as approvals, sketches, permits, photos, or reference documents.</div>
+                </div>
             </div>
         </details>
 
-        <div class="action-row">
+        <section class="form-section wizard-preview-shell" id="wizardPreviewShell">
+            <div class="panel-title-row">
+                <h4>Current TMP page preview</h4>
+                <div class="wizard-page-tools">
+                    <button type="button" class="ghost-button" id="wizardUploadButton">Upload image / file</button>
+                </div>
+            </div>
+            <div class="editor-instructions">The input boxes above feed this page preview. The final full draft is assembled after all chapters and appendices are reviewed.</div>
+            <div id="wizardPreviewPanel" class="wizard-preview-panel"></div>
+        </section>
+
+        <div class="action-row" id="formActionRow">
             <button type="button" class="ghost-button" onclick="fillDummyData()">🧪 Fill Test Data</button>
-            <button type="submit" class="primary-button">Generate CTMP Document</button>
-            <button type="button" class="ghost-button" onclick="generateReport()">📄 Open In-Page Editor</button>
+            <button type="submit" class="primary-button">Create Server DOCX</button>
+            <button type="button" class="ghost-button" onclick="generateReport()">📄 Open Final Draft Editor</button>
         </div>
     </form>
 
@@ -983,18 +1415,40 @@
     const tgsAnalyzedPreview = document.getElementById('tgsAnalyzedPreview');
     const uploadZone = document.getElementById('uploadZone');
     const uploadMeta = document.getElementById('uploadMeta');
+    const supportingFilesInput = document.getElementById('supportingFiles');
+    const supportingFilesMeta = document.getElementById('supportingFilesMeta');
     const validationSummary = document.getElementById('validationSummary');
     const restoreBanner = document.getElementById('restoreBanner');
     const restoreBannerText = document.getElementById('restoreBannerText');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingStatus = document.getElementById('loadingStatus');
+    const heroTemplateMode = document.getElementById('heroTemplateMode');
+    const heroPageCount = document.getElementById('heroPageCount');
+    const heroStageCount = document.getElementById('heroStageCount');
+    const wizardNav = document.getElementById('wizardNav');
+    const wizardShell = document.getElementById('wizardShell');
+    const wizardStepTitle = document.getElementById('wizardStepTitle');
+    const wizardStepDescription = document.getElementById('wizardStepDescription');
+    const wizardStepCounter = document.getElementById('wizardStepCounter');
+    const wizardProgressBar = document.getElementById('wizardProgressBar');
+    const wizardStepMeta = document.getElementById('wizardStepMeta');
+    const wizardPrevButton = document.getElementById('wizardPrevButton');
+    const wizardNextButton = document.getElementById('wizardNextButton');
+    const wizardPreviewShell = document.getElementById('wizardPreviewShell');
+    const wizardPreviewPanel = document.getElementById('wizardPreviewPanel');
+    const wizardUploadButton = document.getElementById('wizardUploadButton');
+    const formActionRow = document.getElementById('formActionRow');
     const editorWorkspace = document.getElementById('editorWorkspace');
     const documentEditor = document.getElementById('documentEditor');
     const stagePlanner = document.getElementById('stagePlanner');
     const tgsLibraryGrid = document.getElementById('tgsLibraryGrid');
     const tgsLibraryCount = document.getElementById('tgsLibraryCount');
     const editorStatusBadge = document.getElementById('editorStatusBadge');
+    const clientLogoInput = document.getElementById('clientLogo');
+    const clientLogoDataInput = document.getElementById('clientLogoData');
+    const clientLogoPreview = document.getElementById('clientLogoPreview');
     const DRAFT_STORAGE_KEY = 'ctmp-generator-draft-v2';
+    const WIZARD_STEP_STORAGE_KEY = 'ctmp-generator-wizard-step-v1';
     const APP_IMPORT_STORAGE_KEY = 'ctmp-app-import-v1';
     const APP_PENDING_TARGET_KEY = 'ctmp-app-pending-target-v1';
     const DEFAULT_APP_URLS = {
@@ -1002,9 +1456,61 @@
         risk: 'https://cromptonconcepts.github.io/Risk-Assessment/',
         tia: 'https://cromptonconcepts.github.io/Cromton-Traffic-Impact-Asssessment/'
     };
+    const TMP_TOC_ITEMS = [
+        '1. Approval, Revision and Distribution',
+        '2. Introduction',
+        '3. Risk Assessment',
+        '4. Project Site Representatives',
+        '5. Project Hierarchy',
+        '6. Site & Construction Summary',
+        '7. Affected Road Infrastructure',
+        '8. Traffic Management Methodology',
+        '9. Traffic Management Standards & Administration',
+        '10. Incident & Near miss procedure',
+        '11. Special Traffic Requests',
+        'Appendix A General Community & Services',
+        'Appendix B Crash History',
+        'Appendix C Weather',
+        'Appendix D Acceptable Traffic Impacts L.O.S.',
+        'Appendix E Traffic Guidance Scheme (TGS)',
+        'Appendix F Desktop Risk Assessment',
+        'Appendix G Project Schedule',
+        'Appendix H Road & Footpath Occupancy Map'
+    ];
+    const WIZARD_STEPS = [
+        { id: 'home', label: 'Home', subtitle: 'Start here', title: 'Home page', description: 'Review the Full TMP structure and move through the document one page at a time.', sections: [], showTemplateIndex: false, focus: ['Review the page flow', 'Understand the source inputs', 'Start with TGS analysis'] },
+        { id: 'basic', label: 'Page 1', subtitle: 'TGS and basic details', title: 'Page 1: Add TGS and basic details', description: 'Choose the template, upload and analyse the TGS, and capture the base project details.', sections: ['section-1', 'section-2', 'section-3'], showTemplateIndex: true, focus: ['Select the TMP template', 'Upload and analyse the TGS', 'Confirm project and client details'] },
+        { id: 'cover', label: 'Page 2', subtitle: 'Cover page', title: 'Page 2: Cover page of the TMP', description: 'Complete the cover page fields, review the cover preview, and upload the client logo.', sections: ['section-3', 'section-4'], showTemplateIndex: false, focus: ['Check the document reference', 'Capture author and reviewer details', 'Upload the client logo'] },
+        { id: 'chapter-1', label: 'Page 3', subtitle: 'Chapter 1', title: 'Page 3: Chapter 1', description: 'Approvals, revision history, distribution, and change log.', sections: ['section-4'], showTemplateIndex: false, chapterPrefix: '1. Approval, Revision and Distribution', focus: ['Approvals table', 'Revision history', 'Distribution and change log'] },
+        { id: 'chapter-2', label: 'Page 4', subtitle: 'Chapter 2', title: 'Page 4: Chapter 2', description: 'Purpose of the TMP, objectives, and duty of care.', sections: ['section-3', 'section-5'], showTemplateIndex: false, chapterPrefix: '2. Introduction', focus: ['Project description', 'Scope of works', 'Site and client context'] },
+        { id: 'chapter-3', label: 'Page 5', subtitle: 'Chapter 3', title: 'Page 5: Chapter 3', description: 'Risk assessment content, controls, and stage-based risks.', sections: ['section-7'], showTemplateIndex: false, chapterPrefix: '3. Risk Assessment', focus: ['Stage planner', 'Risk registers', 'TIA and option analysis'] },
+        { id: 'chapter-4', label: 'Page 6', subtitle: 'Chapter 4', title: 'Page 6: Chapter 4', description: 'Project site representatives and contact tables.', sections: ['section-3', 'section-6'], showTemplateIndex: false, chapterPrefix: '4. Project Site Representatives', focus: ['Client and project contacts', 'Authority contacts', 'Emergency and provider details'] },
+        { id: 'chapter-5', label: 'Page 7', subtitle: 'Chapter 5', title: 'Page 7: Chapter 5', description: 'Hierarchy, responsibilities, nominated officers, and traffic management roles.', sections: ['section-6'], showTemplateIndex: false, chapterPrefix: '5. Project Hierarchy', focus: ['Traffic roles', 'NTO details', 'Project responsibilities'] },
+        { id: 'chapter-6', label: 'Page 8', subtitle: 'Chapter 6', title: 'Page 8: Chapter 6', description: 'Site summary, schedule, restrictions, and plant requirements.', sections: ['section-3', 'section-5'], showTemplateIndex: false, chapterPrefix: '6. Site & Construction Summary', focus: ['Site location', 'Schedule and duration', 'Construction methodology'] },
+        { id: 'chapter-7', label: 'Page 9', subtitle: 'Chapter 7', title: 'Page 9: Chapter 7', description: 'Affected road infrastructure, pedestrians, cyclists, after-hours matters, and NHVR.', sections: ['section-2', 'section-3', 'section-7'], showTemplateIndex: false, chapterPrefix: '7. Affected Road Infrastructure', focus: ['Review extracted TGS sheets', 'Confirm stage impacts', 'Check vulnerable user implications'] },
+        { id: 'chapter-8', label: 'Page 10', subtitle: 'Chapter 8', title: 'Page 10: Chapter 8', description: 'Traffic management methodology, staging, TIA, options analysis, and TGS references.', sections: ['section-5', 'section-7'], showTemplateIndex: false, chapterPrefix: '8. Traffic Management Methodology', focus: ['Work procedure', 'Stage-by-stage TTM', 'TGS references and figures'] },
+        { id: 'chapter-9', label: 'Page 11', subtitle: 'Chapter 9', title: 'Page 11: Chapter 9', description: 'Standards, signage, inspections, communication, logs, and administration.', sections: ['section-6', 'section-7', 'section-9'], showTemplateIndex: false, chapterPrefix: '9. Traffic Management Standards', focus: ['Inspection and admin records', 'Installation or removal notes', 'Supporting attachments'] },
+        { id: 'chapter-10', label: 'Page 12', subtitle: 'Chapter 10', title: 'Page 12: Chapter 10', description: 'Incident identification, reporting, response, and legislative obligations.', sections: ['section-6', 'section-9'], showTemplateIndex: false, chapterPrefix: '10. Incident', focus: ['Emergency contacts', 'Incident response context', 'Supporting forms and attachments'] },
+        { id: 'chapter-11', label: 'Page 13', subtitle: 'Chapter 11', title: 'Page 13: Chapter 11', description: 'Special traffic requests and changes to traffic requirements.', sections: ['section-6', 'section-9'], showTemplateIndex: false, chapterPrefix: '11. Special Traffic Requests', focus: ['Special requests', 'Authority liaison', 'Attachments and approvals'] },
+        { id: 'appendices', label: 'Page 14', subtitle: 'Appendices', title: 'Page 14: Appendices', description: 'Community and services, crash history, weather, LOS, TGS, desktop risk, project schedule, and occupancy map.', sections: ['section-2', 'section-3', 'section-5', 'section-7', 'section-9'], showTemplateIndex: false, focus: ['Community and site references', 'TGS and risk appendices', 'Schedules and occupancy maps'] },
+        { id: 'final', label: 'Final', subtitle: 'Draft and export', title: 'Final draft', description: 'Assemble the full TMP draft and finalise it for DOC or PDF export.', sections: ['section-9'], showTemplateIndex: false, focus: ['Review the full draft', 'Insert TGS sheets where needed', 'Export DOCX or PDF'] }
+    ];
+    const SECTION_LABELS = {
+        'section-1': 'Template type',
+        'section-2': 'TGS analysis',
+        'section-3': 'Project overview',
+        'section-4': 'Document control',
+        'section-5': 'Scope and schedule',
+        'section-6': 'Contact tables',
+        'section-7': 'Construction staging',
+        'section-9': 'Supporting attachments'
+    };
     let currentTgsPreviewPages = [];
+    let currentTgsAnalysisSummary = null;
     let savedSelectionRange = null;
     let pendingImportContext = null;
+    let currentWizardStepId = 'home';
+    let wizardPreviewTimer = null;
 
     function apiUrl(path) {
         return `${API_BASE}${path}`;
@@ -1018,18 +1524,26 @@
         loadTemplateParameters();
         updateTemplateRelevance();
         saveDraftToLocalStorage();
+        scheduleWizardPreviewRender();
     });
     ccNumberInput.addEventListener('input', updateDocumentReferencePreview);
     revisionNumberInput.addEventListener('input', updateDocumentReferencePreview);
     formElement.addEventListener('input', () => {
         updateSectionStatuses();
         hideValidationSummary();
+        scheduleWizardPreviewRender();
     });
     formElement.addEventListener('change', () => {
         updateSectionStatuses();
         saveDraftToLocalStorage();
+        scheduleWizardPreviewRender();
     });
     tgsPdfInput.addEventListener('change', updateUploadDisplay);
+    supportingFilesInput?.addEventListener('change', updateSupportingFilesDisplay);
+    clientLogoInput?.addEventListener('change', handleClientLogoUpload);
+    wizardPrevButton?.addEventListener('click', () => shiftWizardStep(-1));
+    wizardNextButton?.addEventListener('click', () => shiftWizardStep(1));
+    wizardUploadButton?.addEventListener('click', () => supportingFilesInput?.click());
     window.addEventListener('focus', () => tryAutoImportFromLinkedApp());
     window.addEventListener('storage', event => {
         if (event.key === APP_IMPORT_STORAGE_KEY) {
@@ -1093,6 +1607,7 @@
         }
 
         documentReferencePreview.value = ccValue || `TMP-Rev ${revisionValue}`;
+        scheduleWizardPreviewRender();
     }
 
     function escapeHtml(value) {
@@ -1135,7 +1650,7 @@
             message = `${getFieldLabel(field)} is required.`;
         } else if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
             message = `Enter a valid email for ${getFieldLabel(field)}.`;
-        } else if (field.type === 'file' && field.files?.length && !field.files[0].name.toLowerCase().endsWith('.pdf')) {
+        } else if (field.id === 'tgsPdf' && field.type === 'file' && field.files?.length && !field.files[0].name.toLowerCase().endsWith('.pdf')) {
             message = 'Please upload a PDF file.';
         }
 
@@ -1208,12 +1723,13 @@
         validateField(emergencyContacts, true);
         updateSectionStatuses();
         saveDraftToLocalStorage();
+        scheduleWizardPreviewRender();
     }
 
     function updateTemplateRelevance() {
         const lowRelevanceMap = {
-            'Mini_TMP.docx': ['section-4', 'section-6', 'section-8'],
-            'Medium_TMP.docx': ['section-8'],
+            'Mini_TMP.docx': ['section-4', 'section-6'],
+            'Medium_TMP.docx': [],
             'Full_TMP.docx': []
         };
 
@@ -1238,7 +1754,8 @@
             }
         }
 
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), payload }));
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), wizardStepId: currentWizardStepId, payload }));
+        localStorage.setItem(WIZARD_STEP_STORAGE_KEY, currentWizardStepId);
     }
 
     function restoreDraftFromStorage() {
@@ -1278,15 +1795,18 @@
         });
 
         initializeAllDynamicEditors();
+        renderClientLogoPreview();
         updateDocumentReferencePreview();
         updateTemplateRelevance();
         updateSectionStatuses();
+        setWizardStep(saved.wizardStepId || localStorage.getItem(WIZARD_STEP_STORAGE_KEY) || 'home', { scroll: false });
         hideValidationSummary();
         restoreBanner.style.display = 'none';
     }
 
     function discardStoredDraft() {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(WIZARD_STEP_STORAGE_KEY);
         restoreBanner.style.display = 'none';
     }
 
@@ -1329,6 +1849,462 @@
                 }
             });
         });
+
+        renderWizardNav();
+        renderWizardStepMeta(getWizardStep());
+        refreshHeroStats();
+    }
+
+    function getTemplateDisplayLabel(value = templateSelect?.value) {
+        if (value === 'Full_TMP.docx') return 'Full TMP';
+        if (value === 'Medium_TMP.docx') return 'Medium TMP';
+        if (value === 'Mini_TMP.docx') return 'Mini TMP';
+        return 'Not selected';
+    }
+
+    function refreshHeroStats() {
+        if (heroTemplateMode) {
+            heroTemplateMode.textContent = getTemplateDisplayLabel();
+        }
+        if (heroPageCount) {
+            heroPageCount.textContent = String(currentTgsPreviewPages.length || 0);
+        }
+        if (heroStageCount) {
+            heroStageCount.textContent = String(getPlannerStages().length || 0);
+        }
+    }
+
+    function renderWizardStepMeta(step) {
+        if (!wizardStepMeta) return;
+
+        const pills = [];
+        (step.focus || []).forEach(item => {
+            pills.push(`<span class="wizard-step-pill">${escapeHtml(item)}</span>`);
+        });
+
+        step.sections.forEach(sectionId => {
+            const label = SECTION_LABELS[sectionId] || sectionId;
+            pills.push(`<span class="wizard-step-pill section">Source: ${escapeHtml(label)}</span>`);
+        });
+
+        if (step.id === 'basic' && currentTgsPreviewPages.length) {
+            pills.push(`<span class="wizard-step-pill signal">${currentTgsPreviewPages.length} TGS pages loaded</span>`);
+        }
+        if ((step.id === 'appendices' || step.id === 'final') && supportingFilesInput?.files?.length) {
+            pills.push(`<span class="wizard-step-pill signal">${supportingFilesInput.files.length} attachments ready</span>`);
+        }
+
+        wizardStepMeta.innerHTML = pills.join('');
+    }
+
+    function renderClientLogoPreview() {
+        if (!clientLogoPreview || !clientLogoDataInput) return;
+
+        const value = String(clientLogoDataInput.value || '').trim();
+        if (!value) {
+            clientLogoPreview.removeAttribute('src');
+            clientLogoPreview.style.display = 'none';
+            return;
+        }
+
+        clientLogoPreview.src = value;
+        clientLogoPreview.style.display = 'block';
+    }
+
+    function handleClientLogoUpload() {
+        const file = clientLogoInput?.files?.[0];
+        if (!file) {
+            if (clientLogoDataInput) clientLogoDataInput.value = '';
+            renderClientLogoPreview();
+            scheduleWizardPreviewRender();
+            return;
+        }
+
+        if (!(file.type || '').startsWith('image/')) {
+            alert('Please upload an image file for the client logo.');
+            clientLogoInput.value = '';
+            if (clientLogoDataInput) clientLogoDataInput.value = '';
+            renderClientLogoPreview();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (clientLogoDataInput) {
+                clientLogoDataInput.value = String(reader.result || '');
+            }
+            renderClientLogoPreview();
+            updateSectionStatuses();
+            saveDraftToLocalStorage();
+            scheduleWizardPreviewRender();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function getWizardStep(stepId = currentWizardStepId) {
+        return WIZARD_STEPS.find(step => step.id === stepId) || WIZARD_STEPS[0];
+    }
+
+    function getWizardStepIndex(stepId = currentWizardStepId) {
+        return Math.max(0, WIZARD_STEPS.findIndex(step => step.id === stepId));
+    }
+
+    function getWizardStepStatus(step) {
+        if (!step.sections.length) return '';
+
+        const symbols = step.sections.map(sectionId => {
+            const sectionNumber = String(sectionId).replace('section-', '');
+            return document.getElementById(`status-${sectionNumber}`)?.textContent || '○';
+        });
+
+        if (symbols.length && symbols.every(symbol => symbol === '✅')) return 'complete';
+        if (symbols.some(symbol => symbol === '✅' || symbol === '●')) return 'partial';
+        return '';
+    }
+
+    function renderWizardNav() {
+        if (!wizardNav) return;
+
+        wizardNav.innerHTML = WIZARD_STEPS.map(step => {
+            const status = getWizardStepStatus(step);
+            const symbol = status === 'complete' ? '✅' : status === 'partial' ? '●' : '○';
+            return `
+                <button type="button" class="wizard-nav-button ${step.id === currentWizardStepId ? 'active' : ''} ${status}" data-step-id="${step.id}">
+                    <span class="wizard-nav-label">
+                        <span class="wizard-nav-title">${escapeHtml(step.label)}</span>
+                        <span class="wizard-nav-subtitle">${escapeHtml(step.subtitle)}</span>
+                    </span>
+                    <span class="wizard-nav-badge">${symbol}</span>
+                </button>
+            `;
+        }).join('');
+
+        wizardNav.querySelectorAll('[data-step-id]').forEach(button => {
+            button.addEventListener('click', () => setWizardStep(button.dataset.stepId));
+        });
+    }
+
+    function applyWizardLayout(step) {
+        document.querySelectorAll('.form-section[data-section]').forEach(section => {
+            const shouldShow = step.sections.includes(section.id);
+            section.classList.toggle('wizard-section-hidden', !shouldShow);
+            if (shouldShow && section.tagName.toLowerCase() === 'details') {
+                section.open = true;
+            }
+        });
+
+        templateIndexSection.style.display = step.showTemplateIndex ? 'block' : 'none';
+        formActionRow.style.display = step.id === 'final' ? 'flex' : 'none';
+        wizardPreviewShell.style.display = 'block';
+        if (step.id !== 'final') {
+            editorWorkspace.style.display = 'none';
+        }
+    }
+
+    function normalizeText(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function collectHtmlUntilNextH2(startNode) {
+        let html = '';
+        for (let node = startNode; node; node = node.nextElementSibling) {
+            if (node !== startNode && node.tagName === 'H2') {
+                break;
+            }
+            html += node.outerHTML;
+        }
+        return html;
+    }
+
+    function extractHeadingBlock(pageNode, headingPrefix) {
+        const normalizedPrefix = normalizeText(headingPrefix);
+        const heading = Array.from(pageNode.querySelectorAll('h2')).find(node => normalizeText(node.textContent).startsWith(normalizedPrefix));
+        if (!heading) {
+            return `<div class="reference-card"><div class="reference-card-title">Section preview unavailable</div><div class="field-note">The current draft does not yet contain a preview block for ${escapeHtml(headingPrefix)}.</div></div>`;
+        }
+        return collectHtmlUntilNextH2(heading);
+    }
+
+    function extractContentsBlock(pageNode) {
+        const heading = Array.from(pageNode.querySelectorAll('h2')).find(node => normalizeText(node.textContent) === 'contents');
+        return heading ? collectHtmlUntilNextH2(heading) : '';
+    }
+
+    function extractAppendicesBlock(pageNode) {
+        const appendixHeading = Array.from(pageNode.querySelectorAll('h2')).find(node => normalizeText(node.textContent).startsWith('appendix a'));
+        if (!appendixHeading) {
+            return `<div class="reference-card"><div class="reference-card-title">Appendices preview unavailable</div><div class="field-note">Appendix content has not been assembled in the current draft yet.</div></div>`;
+        }
+
+        let html = '';
+        for (let node = appendixHeading; node; node = node.nextElementSibling) {
+            html += node.outerHTML;
+        }
+        return html;
+    }
+
+    function buildWizardHomeHtml() {
+        const chapterCount = TMP_TOC_ITEMS.filter(item => /^\d+\./.test(item)).length;
+        const appendixCount = TMP_TOC_ITEMS.filter(item => item.startsWith('Appendix')).length;
+
+        return `
+            <div class="wizard-home-card">
+                <div class="brand-eyebrow">Full TMP structure</div>
+                <h3>Use the attached Full TMP as the page-by-page workflow</h3>
+                <p>The wizard now follows the structure of the Full TMP you attached. Complete the details for the current page at the top, and review the matching chapter or appendix preview below before moving on.</p>
+                <div class="wizard-home-stats">
+                    <div class="wizard-home-stat">
+                        <span>Wizard pages</span>
+                        <strong>${WIZARD_STEPS.length}</strong>
+                        <small>Home, guided content pages, appendices, and final draft.</small>
+                    </div>
+                    <div class="wizard-home-stat">
+                        <span>Chapters</span>
+                        <strong>${chapterCount}</strong>
+                        <small>Core TMP chapters mirrored from the Full TMP template.</small>
+                    </div>
+                    <div class="wizard-home-stat">
+                        <span>Appendices</span>
+                        <strong>${appendixCount}</strong>
+                        <small>Supporting reference sections assembled at the end of the draft.</small>
+                    </div>
+                    <div class="wizard-home-stat">
+                        <span>TGS pages loaded</span>
+                        <strong>${currentTgsPreviewPages.length}</strong>
+                        <small>Upload and analyse a TGS PDF to populate staging and references.</small>
+                    </div>
+                </div>
+                <div class="wizard-toc-grid">
+                    ${TMP_TOC_ITEMS.map(item => {
+                        const isAppendix = item.startsWith('Appendix');
+                        const [heading, ...rest] = item.split(' ');
+                        const title = isAppendix ? item.replace(/^Appendix\s+[A-Z]\s+/, 'Appendix ') : item.replace(/^\d+\.\s*/, '');
+                        return `
+                            <div class="wizard-toc-card">
+                                <strong>${escapeHtml(heading.replace('.', ''))}${isAppendix ? '' : ''}</strong>
+                                <small>${escapeHtml(title)}</small>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function buildBasicStepHtml(pageNode, payload) {
+        const analysis = currentTgsAnalysisSummary || {};
+        const selectedTemplate = templateSelect.value || 'No template selected yet';
+        const tgsSummary = currentTgsPreviewPages.length ? `${currentTgsPreviewPages.length} analysed TGS page(s) loaded` : 'No TGS analysed yet';
+        const suggestedStages = getCleanSuggestedStages(analysis.stages || []);
+        const rawStageCount = asArray(analysis.rawStages || analysis.stages || []).length;
+        const filteredStageCount = Math.max(0, rawStageCount - suggestedStages.length);
+        const contentsBlock = extractContentsBlock(pageNode);
+
+        return `
+            <div class="wizard-context-grid">
+                <div class="wizard-context-card">
+                    <span>Template</span>
+                    <strong>${escapeHtml(selectedTemplate)}</strong>
+                    <small>Select the document complexity before moving deeper into the TMP.</small>
+                </div>
+                <div class="wizard-context-card">
+                    <span>TGS analysis</span>
+                    <strong>${escapeHtml(tgsSummary)}</strong>
+                    <small>${escapeHtml(analysis.pageType || 'Analyse the TGS to extract site and staging hints.')}</small>
+                </div>
+                <div class="wizard-context-card">
+                    <span>Project details</span>
+                    <strong>${escapeHtml(payload.projectName || 'Project name not entered yet')}</strong>
+                    <small>${escapeHtml(payload.projectLocation || 'Site address not entered yet')}</small>
+                </div>
+                <div class="wizard-context-card">
+                    <span>Detected stages</span>
+                    <strong>${suggestedStages.length}</strong>
+                    <small>${escapeHtml(analysis.sheetReference || 'No TGS reference detected yet')}</small>
+                </div>
+            </div>
+            ${suggestedStages.length ? `<div class="wizard-stage-pills">${suggestedStages.map(stage => `<span class="wizard-stage-pill">${escapeHtml(stage)}</span>`).join('')}</div>` : ''}
+            ${filteredStageCount ? `<div class="wizard-inline-alert">${filteredStageCount} low-confidence stage suggestion${filteredStageCount === 1 ? ' was' : 's were'} ignored so only cleaner staging labels appear in the planner.</div>` : ''}
+            ${contentsBlock || '<div class="reference-card"><div class="reference-card-title">Contents preview unavailable</div></div>'}
+        `;
+    }
+
+    function buildWizardContextHtml(step, payload) {
+        const stageCount = getPlannerStages().length;
+        const attachmentCount = supportingFilesInput?.files?.length || 0;
+        const cards = {
+            'cover': [
+                { label: 'Document reference', value: documentReferencePreview.value.trim() || 'Pending', note: 'Built from the CC number and revision field.' },
+                { label: 'Prepared for', value: payload.clientCompany || 'Not entered', note: 'Shown on the cover and used through the draft.' },
+                { label: 'Author and revision', value: `${payload.authorName || 'Author pending'} • Rev ${payload.revisionNumber || '0'}`, note: 'Reviewers, signatures and dates sit below.' }
+            ],
+            'chapter-1': [
+                { label: 'Approvals rows', value: String(rowsFromPipeText(payload.documentPreparation).length || 2), note: 'Prepared and reviewed entries shown in Table 1.' },
+                { label: 'Revision history', value: String(rowsFromPipeText(payload.revisionHistory).length || 0), note: 'Rows added in the revision editor are reflected here.' },
+                { label: 'Distribution and change log', value: `${rowsFromPipeText(payload.distributionList).length || 0} / ${rowsFromPipeText(payload.changeLog).length || 0}`, note: 'Distribution list count and change log count.' }
+            ],
+            'chapter-2': [
+                { label: 'Project name', value: payload.projectName || 'Not entered', note: 'Used in the introduction and project-specific narrative.' },
+                { label: 'Location', value: payload.projectLocation || 'Not entered', note: 'Feeds the site and context description.' },
+                { label: 'Scope summary', value: payload.scopeOfWork ? 'Provided' : 'Pending', note: 'Scope of works and project description shape this chapter.' }
+            ],
+            'chapter-3': [
+                { label: 'Stages in planner', value: String(stageCount), note: 'Only higher-confidence stage labels are shown here.' },
+                { label: 'Risk inputs', value: stageCount ? 'Stage risk blocks available' : 'No stage risk blocks yet', note: 'Risk, TIA and option fields feed Section 3 and 8.6.' },
+                { label: 'TGS pages', value: String(currentTgsPreviewPages.length), note: 'Use the analysed TGS as the source for stage context.' }
+            ],
+            'chapter-4': [
+                { label: 'Client organisation', value: payload.clientCompany || 'Not entered', note: 'Client and project representatives populate these tables.' },
+                { label: 'Badge contacts', value: String(rowsFromPipeText(payload.badgeContacts).length || 0), note: 'Project Manager, Site Manager and Works Officer details live here.' },
+                { label: 'Emergency/provider tables', value: `${rowsFromPipeText(payload.emergencyContacts).length || 0} / ${rowsFromPipeText(payload.trafficControlContacts).length || 0}`, note: 'Emergency contact count and traffic control contact count.' }
+            ],
+            'chapter-5': [
+                { label: 'NTO', value: payload.ntoName || 'Not entered', note: 'Use the nominated traffic officer and provider details here.' },
+                { label: 'Authority liaison', value: payload.councilOfficer || payload.councilDept || 'Not entered', note: 'Council or authority contacts support the hierarchy context.' },
+                { label: 'Traffic provider', value: payload.tcProviderName || payload.trafficControlCompany || 'Not entered', note: 'Provider details help anchor responsibilities.' }
+            ],
+            'chapter-6': [
+                { label: 'Site location', value: payload.projectLocation || 'Not entered', note: 'Displayed as the site location reference.' },
+                { label: 'Program', value: `${payload.startDate || 'TBC'} → ${payload.endDate || 'TBC'}`, note: 'Programmed start and finish are reused later in Appendix G.' },
+                { label: 'Methodology', value: payload.constructionActivity ? 'Provided' : 'Pending', note: 'Construction methodology feeds the site and construction summary.' }
+            ],
+            'chapter-7': [
+                { label: 'Analysed TGS pages', value: String(currentTgsPreviewPages.length), note: 'Use the extracted drawings to verify affected road infrastructure.' },
+                { label: 'Detected stages', value: String(stageCount), note: 'Stage impacts and constraints help frame this section.' },
+                { label: 'Site address', value: payload.projectLocation || 'Not entered', note: 'Supports infrastructure, access and network discussion.' }
+            ],
+            'chapter-8': [
+                { label: 'Stages ready', value: String(stageCount), note: 'Every selected stage becomes a dedicated 8.6 block in the draft.' },
+                { label: 'General methodology', value: payload.constructionActivity ? 'Provided' : 'Pending', note: 'Site preparation and works procedure depend on this detail.' },
+                { label: 'TGS reference', value: payload.tgsReference || 'Not entered', note: 'General TGS references and per-stage sheet links are surfaced here.' }
+            ],
+            'chapter-9': [
+                { label: 'Attachments', value: String(attachmentCount), note: 'Supporting files can back the admin and compliance sections.' },
+                { label: 'Traffic provider', value: payload.tcProviderName || payload.trafficControlCompany || 'Not entered', note: 'Provider details support admin and communication protocol sections.' },
+                { label: 'Stage notes', value: stageCount ? 'Available in stage planner' : 'No stage notes yet', note: 'Installation and removal notes usually come from stage misc data.' }
+            ],
+            'chapter-10': [
+                { label: 'Emergency contacts', value: String(rowsFromPipeText(payload.emergencyContacts).length || 0), note: 'These contacts anchor the incident and response pathway.' },
+                { label: 'NTO contact', value: payload.ntoName || 'Not entered', note: 'Use the nominated traffic officer as a key escalation point.' },
+                { label: 'Supporting files', value: String(attachmentCount), note: 'Upload any incident forms or reference material as attachments.' }
+            ],
+            'chapter-11': [
+                { label: 'Authority contact', value: payload.councilOfficer || payload.councilDept || 'Not entered', note: 'This step covers changes, requests and authority coordination.' },
+                { label: 'Supporting approvals', value: String(attachmentCount), note: 'Attach any request approvals or correspondence here.' },
+                { label: 'TGS reference', value: payload.tgsReference || 'Not entered', note: 'Use this if special traffic requests require revised schemes.' }
+            ],
+            'appendices': [
+                { label: 'TGS sheets', value: String(currentTgsPreviewPages.length), note: 'Appendix E draws from the analysed TGS library.' },
+                { label: 'Stage records', value: String(stageCount), note: 'Stage-based risk, methodology and schedule content supports the appendices.' },
+                { label: 'Attachments', value: String(attachmentCount), note: 'Extra files can be listed after the formal appendices.' }
+            ],
+            'final': [
+                { label: 'Template mode', value: getTemplateDisplayLabel(), note: 'The full draft uses the current template choice.' },
+                { label: 'Stages in draft', value: String(stageCount), note: 'Each stage becomes part of the Section 8 implementation narrative.' },
+                { label: 'Attachments ready', value: String(attachmentCount), note: 'These are listed at the end of the preview when present.' }
+            ]
+        };
+
+        const entries = cards[step.id];
+        if (!entries || !entries.length) {
+            return '';
+        }
+
+        return `
+            <div class="wizard-context-grid">
+                ${entries.map(card => `
+                    <div class="wizard-context-card">
+                        <span>${escapeHtml(card.label)}</span>
+                        <strong>${escapeHtml(card.value)}</strong>
+                        <small>${escapeHtml(card.note)}</small>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function buildWizardPreviewHtml(stepId, payload) {
+        const step = getWizardStep(stepId);
+        if (step.id === 'home') {
+            return buildWizardHomeHtml();
+        }
+
+        const fullDocumentHtml = buildDocumentHtml(payload);
+        const host = document.createElement('div');
+        host.innerHTML = fullDocumentHtml;
+        const pageNode = host.querySelector('.document-page');
+        if (!pageNode) {
+            return `<div class="reference-card"><div class="reference-card-title">Preview unavailable</div><div class="field-note">The document preview could not be assembled.</div></div>`;
+        }
+
+        if (step.id === 'basic') {
+            return buildBasicStepHtml(pageNode, payload);
+        }
+
+        if (step.id === 'cover') {
+            return `${buildWizardContextHtml(step, payload)}${host.querySelector('.doc-cover')?.outerHTML || '<div class="reference-card"><div class="reference-card-title">Cover preview unavailable</div></div>'}`;
+        }
+
+        if (step.id === 'appendices') {
+            return `${buildWizardContextHtml(step, payload)}${extractAppendicesBlock(pageNode)}`;
+        }
+
+        if (step.id === 'final') {
+            return `${buildWizardContextHtml(step, payload)}${fullDocumentHtml}`;
+        }
+
+        if (step.chapterPrefix) {
+            return `${buildWizardContextHtml(step, payload)}${extractHeadingBlock(pageNode, step.chapterPrefix)}`;
+        }
+
+        return fullDocumentHtml;
+    }
+
+    function renderWizardPreview() {
+        if (!wizardPreviewPanel) return;
+        const payload = collectFormValues();
+        wizardPreviewPanel.innerHTML = buildWizardPreviewHtml(currentWizardStepId, payload);
+    }
+
+    function scheduleWizardPreviewRender() {
+        window.clearTimeout(wizardPreviewTimer);
+        wizardPreviewTimer = window.setTimeout(() => {
+            renderWizardPreview();
+        }, 120);
+    }
+
+    function setWizardStep(stepId, options = {}) {
+        const { scroll = true } = options;
+        const step = getWizardStep(stepId);
+        const stepIndex = getWizardStepIndex(step.id);
+        const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
+
+        currentWizardStepId = step.id;
+        wizardStepTitle.textContent = step.title;
+        wizardStepDescription.textContent = step.description;
+        wizardStepCounter.textContent = `${stepIndex + 1} / ${WIZARD_STEPS.length}`;
+        if (wizardProgressBar) {
+            wizardProgressBar.style.width = `${progress}%`;
+        }
+        wizardPrevButton.disabled = stepIndex === 0;
+        wizardNextButton.disabled = stepIndex === WIZARD_STEPS.length - 1;
+        wizardNextButton.textContent = stepIndex === WIZARD_STEPS.length - 1 ? 'At final step' : 'Next →';
+
+        applyWizardLayout(step);
+        renderWizardNav();
+        renderWizardStepMeta(step);
+        scheduleWizardPreviewRender();
+        localStorage.setItem(WIZARD_STEP_STORAGE_KEY, currentWizardStepId);
+
+        if (scroll && wizardShell) {
+            wizardShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function shiftWizardStep(direction) {
+        const currentIndex = getWizardStepIndex();
+        const nextIndex = Math.max(0, Math.min(WIZARD_STEPS.length - 1, currentIndex + direction));
+        setWizardStep(WIZARD_STEPS[nextIndex].id);
     }
 
     async function estimatePdfPageCount(file) {
@@ -1353,6 +2329,7 @@
             renderAnalyzedTgsPreview([]);
             renderStagePlanner();
             updateSectionStatuses();
+            scheduleWizardPreviewRender();
             return;
         }
 
@@ -1360,6 +2337,26 @@
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
         uploadMeta.textContent = `${file.name} • ${sizeMb} MB${pageCount ? ` • approx. ${pageCount} pages` : ''}`;
         updateSectionStatuses();
+        scheduleWizardPreviewRender();
+    }
+
+    function updateSupportingFilesDisplay() {
+        if (!supportingFilesMeta) return;
+
+        const files = Array.from(supportingFilesInput?.files || []);
+        if (!files.length) {
+            supportingFilesMeta.textContent = 'No supporting files selected yet.';
+            updateSectionStatuses();
+            scheduleWizardPreviewRender();
+            return;
+        }
+
+        const summary = files.length === 1
+            ? files[0].name
+            : `${files.length} supporting files selected`;
+        supportingFilesMeta.textContent = summary;
+        updateSectionStatuses();
+        scheduleWizardPreviewRender();
     }
 
     function asArray(value) {
@@ -1372,8 +2369,189 @@
         return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'stage';
     }
 
+    function sanitizeStageLabel(value) {
+        return String(value || '')
+            .replace(/^table\s+\d+\s*:\s*/i, '')
+            .replace(/^\d+(?:\.\d+)*\s+/i, '')
+            .replace(/^[-–—:\s]+/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function isLikelyStageLabel(value) {
+        const cleaned = sanitizeStageLabel(value);
+        const normalized = cleaned.toLowerCase();
+        const wordCount = cleaned ? cleaned.split(/\s+/).length : 0;
+
+        if (!cleaned) return false;
+        if (cleaned.length > 48 || wordCount > 5) return false;
+        if (/[.!?]/.test(cleaned)) return false;
+        if (/^table\s+\d+/i.test(cleaned)) return false;
+        if (/\b(scope of works|description|nature of works|works aftercare|specific emergency then|pedestrians and cyclists|operational and accessible throughout the works|affected bus stop|potential risk|proposed control|vehicular traffic)\b/i.test(cleaned)) {
+            return false;
+        }
+
+        const matchesManualOption = Array.from(document.querySelectorAll('input[name="stages"]')).some(field => normalizeStageLabel(field.value) === normalized);
+        if (matchesManualOption) return true;
+
+        return /(inspection|locating|installation|works|construction|trenching|reinstatement|signage|switch|excavation|crossover|kerb|channel|barrier|footpath|pit|service|pavement|haulage|demolition|removal|line marking)/i.test(cleaned);
+    }
+
+    function getCleanSuggestedStages(values) {
+        const stages = [];
+        asArray(values).forEach(stage => {
+            const cleaned = sanitizeStageLabel(stage);
+            if (!isLikelyStageLabel(cleaned)) return;
+            if (!stages.some(item => normalizeStageLabel(item) === normalizeStageLabel(cleaned))) {
+                stages.push(cleaned);
+            }
+        });
+        return stages;
+    }
+
+    function normalizeStageLabel(value) {
+        return sanitizeStageLabel(value).toLowerCase();
+    }
+
+    function getStageReferenceKey(value) {
+        const match = String(value || '').toUpperCase().match(/CC\d{5}-S\d+/);
+        return match ? match[0] : '';
+    }
+
     function getSelectedStages() {
         return Array.from(document.querySelectorAll('input[name="stages"]:checked')).map(field => field.value);
+    }
+
+    function getDetectedStagesFromTgs() {
+        const stages = [];
+        currentTgsPreviewPages.forEach(page => {
+            if (page.isCoverPage || page.isTiaPage) {
+                return;
+            }
+            const stageName = sanitizeStageLabel(page.stageName);
+            if (!isLikelyStageLabel(stageName)) {
+                return;
+            }
+            if (stageName && !stages.some(item => normalizeStageLabel(item) === normalizeStageLabel(stageName))) {
+                stages.push(stageName);
+            }
+        });
+        return stages;
+    }
+
+    function getPlannerStages() {
+        const combined = [];
+        [...getSelectedStages(), ...getDetectedStagesFromTgs()].forEach(stage => {
+            if (stage && !combined.some(item => normalizeStageLabel(item) === normalizeStageLabel(stage))) {
+                combined.push(stage);
+            }
+        });
+        return combined;
+    }
+
+    function getRelatedTgsPagesForStage(stage) {
+        const normalizedStage = normalizeStageLabel(stage);
+        const directMatches = currentTgsPreviewPages.filter(page => normalizeStageLabel(page.stageName) === normalizedStage);
+        const referenceKeys = [...new Set(directMatches.map(page => getStageReferenceKey(page.sheetReference || page.label)).filter(Boolean))];
+
+        const relatedPages = currentTgsPreviewPages.filter(page => {
+            const pageKey = getStageReferenceKey(page.sheetReference || page.label);
+            const sameStage = normalizeStageLabel(page.stageName) === normalizedStage;
+            const sameReferenceGroup = pageKey && referenceKeys.includes(pageKey);
+            const sharedTia = Boolean(page.isTiaPage) && (!referenceKeys.length || sameReferenceGroup);
+            return sameStage || sameReferenceGroup || sharedTia;
+        });
+
+        const uniquePages = [];
+        relatedPages.forEach(page => {
+            if (!uniquePages.some(item => item.id === page.id)) {
+                uniquePages.push(page);
+            }
+        });
+        return uniquePages;
+    }
+
+    function buildStageTgsReferenceValue(stage, retainedValue = '') {
+        if (String(retainedValue || '').trim()) {
+            return retainedValue;
+        }
+
+        const relatedPages = getRelatedTgsPagesForStage(stage);
+        return relatedPages.map(page => {
+            const label = page.sheetReference || page.label || `TGS Page ${page.pageNumber}`;
+            const suffix = page.pageType ? ` — ${page.pageType}` : '';
+            return `${label}${suffix}`;
+        }).join('\n');
+    }
+
+    function joinUniqueStageText(values, separator = '\n\n') {
+        const unique = [];
+        values.forEach(value => {
+            const cleaned = String(value || '').trim();
+            if (cleaned && !unique.includes(cleaned)) {
+                unique.push(cleaned);
+            }
+        });
+        return unique.join(separator);
+    }
+
+    function buildStageAutoSections(stage) {
+        const relatedPages = getRelatedTgsPagesForStage(stage);
+        const designPage = relatedPages.find(page => page.isDesignPage) || {};
+        const tiaPages = relatedPages.filter(page => page.isTiaPage);
+        const stageMethod = designPage.methodology || relatedPages.find(page => String(page.methodology || '').trim())?.methodology || '';
+        const stageLocation = designPage.siteLocation || tiaPages[0]?.siteLocation || relatedPages.find(page => String(page.siteLocation || '').trim())?.siteLocation || '';
+        const crossStreets = designPage.crossStreets || tiaPages[0]?.crossStreets || relatedPages.find(page => String(page.crossStreets || '').trim())?.crossStreets || '';
+        const roadSpeed = designPage.roadSpeed || tiaPages[0]?.roadSpeed || relatedPages.find(page => String(page.roadSpeed || '').trim())?.roadSpeed || '';
+        const riskText = joinUniqueStageText(relatedPages.map(page => page.riskAssessmentExtract));
+        const optionText = joinUniqueStageText(relatedPages.map(page => page.optionAnalysisExtract));
+        const installationText = joinUniqueStageText(relatedPages.map(page => page.installationProcess));
+        const removalText = joinUniqueStageText(relatedPages.map(page => page.removalProcess));
+        const manifestText = joinUniqueStageText(relatedPages.map(page => page.manifestText));
+        const trafficSensitiveMethod = /\b(lane closure|lane closures|road closure|road closures|full closure|detour|contra flow|stop\/?slow|hold\s*&?\s*release|alternating flow|traffic switch|road traffic|queue|los|vcr)\b/i;
+        const tiaRequired = Boolean(
+            tiaPages.length ||
+            trafficSensitiveMethod.test(stageMethod) ||
+            trafficSensitiveMethod.test(optionText) ||
+            trafficSensitiveMethod.test(riskText)
+        );
+        const tiaText = tiaPages.length
+            ? tiaPages.map(page => {
+                const parts = [
+                    page.sheetReference ? `TIA Reference: ${page.sheetReference}` : '',
+                    page.siteLocation ? `Location: ${page.siteLocation}` : '',
+                    page.crossStreets || '',
+                    page.roadSpeed || '',
+                    'Insert queue length, VCR and LOS outputs here, or import them from the TIA app.'
+                ].filter(Boolean);
+                return parts.join('\n');
+            }).join('\n\n')
+            : '';
+        const miscText = joinUniqueStageText([
+            installationText ? `Installation Process\n${installationText}` : '',
+            removalText ? `Removal Process\n${removalText}` : '',
+            manifestText ? `Manifest / traffic devices\n${manifestText}` : ''
+        ], '\n\n');
+
+        return {
+            info: joinUniqueStageText([
+                stageLocation ? `Site: ${stageLocation}` : '',
+                `Stage: ${stage}`,
+                stageMethod ? `Method: ${stageMethod}` : ''
+            ], '\n'),
+            activityLog: joinUniqueStageText([
+                stageMethod ? `Construction methodology: ${stageMethod}` : ''
+            ]),
+            impacts: joinUniqueStageText([
+                crossStreets,
+                roadSpeed
+            ]),
+            risk: riskText,
+            tia: tiaRequired ? tiaText : '',
+            option: optionText,
+            misc: miscText,
+            tgsDesign: buildStageTgsReferenceValue(stage)
+        };
     }
 
     function collectCurrentStageValues() {
@@ -1506,6 +2684,7 @@
 
         updateSectionStatuses();
         saveDraftToLocalStorage();
+        scheduleWizardPreviewRender();
         return Boolean(summary || data);
     }
 
@@ -1616,82 +2795,105 @@
     function renderStagePlanner(savedValues = {}) {
         if (!stagePlanner) return;
 
-        const selectedStages = getSelectedStages();
+        const plannerStages = getPlannerStages();
         const retainedValues = { ...collectCurrentStageValues(), ...(savedValues || {}) };
 
-        if (!selectedStages.length) {
+        if (!plannerStages.length) {
             stagePlanner.innerHTML = `
                 <div class="reference-card">
                     <div class="reference-card-title">No stages selected yet</div>
-                    <div class="field-note">Choose one or more construction stages to define information, risk assessment, traffic impact, option analysis, TGS reference, and misc notes for each stage.</div>
+                    <div class="field-note">Choose stages manually or analyse a TGS to automatically load all detected construction stages.</div>
                 </div>
             `;
             return;
         }
 
-        stagePlanner.innerHTML = selectedStages.map((stage, index) => {
+        stagePlanner.innerHTML = plannerStages.map((stage, index) => {
             const slug = slugifyStageName(stage);
             const infoId = `stageInfo_${slug}`;
+            const activityId = `stageActivityLog_${slug}`;
+            const impactsId = `stageImpacts_${slug}`;
             const riskId = `stageRisk_${slug}`;
             const tiaId = `stageTrafficImpact_${slug}`;
             const optionId = `stageOptionAnalysis_${slug}`;
             const tgsId = `stageTgsReference_${slug}`;
             const miscId = `stageMisc_${slug}`;
+            const relatedPages = getRelatedTgsPagesForStage(stage);
+            const stageDefaults = buildStageAutoSections(stage);
+            const infoValue = retainedValues[infoId] || stageDefaults.info;
+            const activityValue = retainedValues[activityId] || stageDefaults.activityLog;
+            const impactsValue = retainedValues[impactsId] || stageDefaults.impacts;
+            const riskValue = retainedValues[riskId] || stageDefaults.risk;
+            const tiaValue = retainedValues[tiaId] || stageDefaults.tia;
+            const optionValue = retainedValues[optionId] || stageDefaults.option;
+            const miscValue = retainedValues[miscId] || stageDefaults.misc || '';
+            const tgsValue = buildStageTgsReferenceValue(stage, retainedValues[tgsId] || stageDefaults.tgsDesign || '');
 
             return `
-                <details class="stage-detail-card" ${index === 0 ? 'open' : ''}>
+                <details class="stage-detail-card" data-stage-name="${escapeHtml(stage)}" ${index === 0 ? 'open' : ''}>
                     <summary>
                         <span>${index + 1}. ${escapeHtml(stage)}</span>
-                        <span class="field-note">Click to edit this stage</span>
+                        <span class="field-note">${relatedPages.length ? `${relatedPages.length} linked TGS sheet${relatedPages.length === 1 ? '' : 's'}` : 'Click to edit this stage'}</span>
                     </summary>
                     <div class="stage-detail-grid">
                         <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
-                            <label for="${infoId}">1. Information about the stage</label>
-                            <textarea id="${infoId}" name="${infoId}" required placeholder="Describe the specific works, plant, methodology, access, hours and constraints for this stage.">${escapeHtml(retainedValues[infoId] || '')}</textarea>
-                            <div class="field-note">This should be completed by the user for each stage.</div>
+                            <label for="${infoId}">1. Information</label>
+                            <textarea id="${infoId}" name="${infoId}" required placeholder="General overview of this construction stage.">${escapeHtml(infoValue)}</textarea>
+                        </div>
+
+                        <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
+                            <label for="${activityId}">2. Construction Activity Log</label>
+                            <textarea id="${activityId}" name="${activityId}" placeholder="List construction sequence, work steps, installation and removal activities for this stage.">${escapeHtml(activityValue)}</textarea>
+                        </div>
+
+                        <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
+                            <label for="${impactsId}">3. Impacts and Constraints</label>
+                            <textarea id="${impactsId}" name="${impactsId}" placeholder="Add traffic, pedestrian, access, stakeholder and site constraints here.">${escapeHtml(impactsValue)}</textarea>
                         </div>
 
                         <div class="form-group stage-field-group">
-                            <label for="${riskId}">2. Risk Assessment</label>
+                            <label for="${riskId}">4. Risk Assessment (Risk Register)</label>
                             <div class="stage-button-row">
                                 <button type="button" class="mini-button" data-open-tool="risk" data-open-target="${riskId}">Open Risk App</button>
                                 <button type="button" class="mini-button" data-import-target="${riskId}" data-import-kind="risk">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${riskId}" data-copy-group="risk">Copy above</button>` : ''}
                             </div>
-                            <textarea id="${riskId}" name="${riskId}" data-stage-group="risk" placeholder="Import the selected risks or paste the risk register summary for this stage.">${escapeHtml(retainedValues[riskId] || '')}</textarea>
+                            <textarea id="${riskId}" name="${riskId}" data-stage-group="risk" placeholder="Import the selected risks or paste the risk register summary for this stage.">${escapeHtml(riskValue)}</textarea>
                         </div>
 
                         <div class="form-group stage-field-group">
-                            <label for="${tiaId}">3. Traffic Impact Assessment</label>
+                            <label for="${tiaId}">5. Traffic Impact Assessment (TIA, if required)</label>
                             <div class="stage-button-row">
                                 <button type="button" class="mini-button" data-open-tool="tia" data-open-target="${tiaId}">Open TIA App</button>
                                 <button type="button" class="mini-button" data-import-target="${tiaId}" data-import-kind="tia">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${tiaId}" data-copy-group="tia">Copy above</button>` : ''}
                             </div>
-                            <textarea id="${tiaId}" name="${tiaId}" data-stage-group="tia" placeholder="Paste queue lengths, LOS, VCR and any temporary traffic impact notes here.">${escapeHtml(retainedValues[tiaId] || '')}</textarea>
+                            <textarea id="${tiaId}" name="${tiaId}" data-stage-group="tia" placeholder="Complete this only when the methodology affects road traffic flow. Paste queue lengths, LOS, VCR and traffic impact notes here.">${escapeHtml(tiaValue)}</textarea>
+                            <div class="field-note">TIA is only required where the stage affects road traffic flow, such as lane closures, stop/slow operations, detours, or similar traffic network impacts.</div>
                         </div>
 
                         <div class="form-group stage-field-group">
-                            <label for="${optionId}">4. Option Analysis</label>
+                            <label for="${optionId}">6. Options Analysis and Selection</label>
                             <div class="stage-button-row">
                                 <button type="button" class="mini-button" data-open-tool="option" data-open-target="${optionId}">Open Option App</button>
                                 <button type="button" class="mini-button" data-import-target="${optionId}" data-import-kind="option">Import from App</button>
                                 ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${optionId}" data-copy-group="option">Copy above</button>` : ''}
                             </div>
-                            <textarea id="${optionId}" name="${optionId}" data-stage-group="option" placeholder="Paste the selected option analysis outcome for this stage.">${escapeHtml(retainedValues[optionId] || '')}</textarea>
-                        </div>
-
-                        <div class="form-group stage-field-group">
-                            <label for="${tgsId}">5. TGS Reference</label>
-                            <select id="${tgsId}" name="${tgsId}" data-stage-group="tgs">
-                                ${buildTgsSelectOptions(retainedValues[tgsId] || '')}
-                            </select>
-                            <div class="field-note">Choose the matching TGS sheet from the extracted images.</div>
+                            <textarea id="${optionId}" name="${optionId}" data-stage-group="option" placeholder="Explain the options considered and the adopted traffic management strategy for this stage.">${escapeHtml(optionValue)}</textarea>
                         </div>
 
                         <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
-                            <label for="${miscId}">Misc</label>
-                            <textarea id="${miscId}" name="${miscId}" placeholder="Add any extra notes, approvals, stakeholder conditions or stage-specific instructions here.">${escapeHtml(retainedValues[miscId] || '')}</textarea>
+                            <label for="${tgsId}">7. TGS Reference</label>
+                            <textarea id="${tgsId}" name="${tgsId}" data-stage-group="tgs" placeholder="Relevant TGS sheets for this stage will appear here automatically. You can edit this list if needed.">${escapeHtml(tgsValue)}</textarea>
+                            <div class="field-note">Detected sheets for this stage are added automatically from the TGS scan.</div>
+                        </div>
+
+                        <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
+                            <label for="${miscId}">8. Misc Information</label>
+                            <div class="stage-button-row">
+                                ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${miscId}" data-copy-group="misc">Copy above</button>` : ''}
+                            </div>
+                            <textarea id="${miscId}" name="${miscId}" data-stage-group="misc" placeholder="Add any extra stage notes, installation or removal sequencing, manifest notes, approvals or other supporting information here.">${escapeHtml(miscValue)}</textarea>
                         </div>
                     </div>
                 </details>
@@ -1714,6 +2916,15 @@
                 payload[key] = value;
             }
         }
+
+        const plannerStageNames = Array.from(stagePlanner?.querySelectorAll('[data-stage-name]') || []).map(item => item.dataset.stageName).filter(Boolean);
+        const combinedStages = [];
+        [...asArray(payload.stages), ...plannerStageNames].forEach(stage => {
+            if (stage && !combinedStages.some(item => normalizeStageLabel(item) === normalizeStageLabel(stage))) {
+                combinedStages.push(stage);
+            }
+        });
+        payload.stages = combinedStages;
 
         return payload;
     }
@@ -1745,6 +2956,7 @@
         const projectName = payload.projectName || 'Project title to be confirmed';
         const location = payload.projectLocation || 'Site location to be confirmed';
         const client = payload.clientCompany || 'Client to be confirmed';
+        const clientLogoData = payload.clientLogoData || '';
         const docRef = documentReferencePreview.value.trim() || 'TMP draft reference pending';
         const revNum = payload.revisionNumber || '0';
         const authorName = payload.authorName || 'Author Name';
@@ -1757,10 +2969,7 @@
         const projectDesc = payload.projectDescription || 'Project description to be confirmed.';
         const constructionActivity = payload.constructionActivity || '';
         const stageText = stages.length ? stages.join(', ') : 'General construction works';
-        const trafficNotes = payload.trafficManagementNotes || '';
-        const jurisdiction = payload.jurisdiction || 'TMR';
-        const targetYear = payload.targetYear || new Date().getFullYear();
-        const desktopRiskSummary = payload.riskAssessmentSummary || '';
+        const supportingFiles = supportingFilesInput?.files ? Array.from(supportingFilesInput.files).map(file => file.name) : [];
         const tgsRef = payload.tgsReference || '';
         const tgsNum = payload.tgsNumber || '';
         const startDate = payload.startDate || 'TBC';
@@ -1795,6 +3004,7 @@
                         <div class="cover-brand">CROMPTON.</div>
                         <div class="cover-tagline">Deliberately Different</div>
                     </div>
+                    ${clientLogoData ? `<div class="doc-cover-logo-wrap"><img class="doc-cover-client-logo" src="${e(clientLogoData)}" alt="Client logo"></div>` : ''}
                     <div class="doc-cover-title">TRAFFIC<br>MANAGEMENT<br>PLAN</div>
                     <h3 style="margin-top: 24px;">${e(docRef)}</h3>
                     <dl class="doc-cover-meta">
@@ -1827,7 +3037,13 @@
                     <li>10. Incident &amp; Near Miss Procedure</li>
                     <li>11. Special Traffic Requests</li>
                     <li>Appendix A – General Community &amp; Services</li>
-                    <li>Appendix B – Traffic Guidance Scheme</li>
+                    <li>Appendix B – Crash History</li>
+                    <li>Appendix C – Weather</li>
+                    <li>Appendix D – Acceptable Traffic Impacts / L.O.S.</li>
+                    <li>Appendix E – Traffic Guidance Scheme</li>
+                    <li>Appendix F – Desktop Risk Assessment</li>
+                    <li>Appendix G – Project Schedule</li>
+                    <li>Appendix H – Road &amp; Footpath Occupancy Map</li>
                 </ol>
 
                 <hr class="doc-section-break">
@@ -1907,13 +3123,6 @@
 
                 <h3>3.6 Coordination with Nearby Worksites</h3>
                 <p class="doc-boilerplate">The Site Supervisor and Nominated Traffic Officer are to coordinate traffic management with any adjacent worksites to minimise competing controls, excessive queueing, and driver confusion.</p>
-                ${desktopRiskSummary ? `
-                    <div class="doc-subblock">
-                        <p><strong>Desktop Risk Assessment Summary</strong></p>
-                        <p>${nl2br(desktopRiskSummary)}</p>
-                    </div>
-                ` : ''}
-
                 <hr class="doc-section-break">
 
                 <!-- ===== 4. PROJECT SITE REPRESENTATIVES ===== -->
@@ -2058,12 +3267,14 @@
                 <p class="doc-boilerplate">Haulage activities are to use approved routes where required and are to avoid unnecessary impacts to sensitive land uses and peak periods.</p>
 
                 <h3>8.5 Traffic Volume Estimation &amp; Traffic Impact Analysis</h3>
-                <div class="doc-placeholder">Insert AADT table, traffic impact analysis table, and queue length estimation. Use the selected jurisdiction (${e(jurisdiction)}), target year (${e(targetYear)}), and traffic data source (${e(payload.dataSource || 'hourly_profile')}).</div>
+                <div class="doc-placeholder">Insert AADT, traffic impact analysis and queue estimation outputs only for construction stages where the methodology affects road traffic flow.</div>
 
                 <h3>8.6 TTM Implementation</h3>
                 ${stages.length ? stages.map((stage, i) => {
                     const stageSlug = String(stage || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                     const stageInfo = payload[`stageInfo_${stageSlug}`] || constructionActivity || '';
+                    const stageActivityLog = payload[`stageActivityLog_${stageSlug}`] || '';
+                    const stageImpacts = payload[`stageImpacts_${stageSlug}`] || '';
                     const stageRisk = payload[`stageRisk_${stageSlug}`] || '';
                     const stageTrafficImpact = payload[`stageTrafficImpact_${stageSlug}`] || '';
                     const stageOptionAnalysis = payload[`stageOptionAnalysis_${stageSlug}`] || '';
@@ -2073,31 +3284,37 @@
                     return `
                         <h4>8.6.${i + 1} ${e(stage)}</h4>
                         <div class="doc-subblock">
-                            <p><strong>1. Information about the stage</strong></p>
+                            <p><strong>1. Information</strong></p>
                             <p>${stageInfo ? nl2br(stageInfo) : 'Stage-specific information to be completed by the user.'}</p>
                         </div>
                         <div class="doc-subblock">
-                            <p><strong>2. Risk Assessment</strong></p>
+                            <p><strong>2. Construction Activity Log</strong></p>
+                            <p>${stageActivityLog ? nl2br(stageActivityLog) : 'Document the work sequence, setup, operation and removal activities for this stage.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>3. Impacts and Constraints</strong></p>
+                            <p>${stageImpacts ? nl2br(stageImpacts) : 'Summarise traffic, pedestrian, access and stakeholder constraints for this stage.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>4. Risk Assessment (Risk Register)</strong></p>
                             <p>${stageRisk ? nl2br(stageRisk) : 'Import the relevant risks from the Risk Assessment app or paste the risk register summary here.'}</p>
                         </div>
                         <div class="doc-subblock">
-                            <p><strong>3. Traffic Impact Assessment</strong></p>
-                            <p>${stageTrafficImpact ? nl2br(stageTrafficImpact) : 'Import queue, LOS and VCR outputs from the TIA app for this stage.'}</p>
+                            <p><strong>5. Traffic Impact Assessment (if required)</strong></p>
+                            <p>${stageTrafficImpact ? nl2br(stageTrafficImpact) : 'Not required for this stage unless the methodology affects road traffic flow, such as lane closures, stop/slow operations, detours or similar network impacts.'}</p>
                         </div>
                         <div class="doc-subblock">
-                            <p><strong>4. Option Analysis</strong></p>
-                            <p>${stageOptionAnalysis ? nl2br(stageOptionAnalysis) : 'Import the selected option analysis outcome for this stage.'}</p>
+                            <p><strong>6. Options Analysis and Selection</strong></p>
+                            <p>${stageOptionAnalysis ? nl2br(stageOptionAnalysis) : 'Explain the options considered and the adopted strategy for this stage.'}</p>
                         </div>
                         <div class="doc-subblock">
-                            <p><strong>5. TGS Reference</strong></p>
-                            <p>${stageTgsReference ? e(stageTgsReference) : 'Select the matching TGS sheet from the extracted images.'}</p>
+                            <p><strong>7. TGS Reference</strong></p>
+                            <p>${stageTgsReference ? nl2br(stageTgsReference) : 'Select the matching TGS sheet from the extracted images.'}</p>
                         </div>
-                        ${stageMisc ? `
-                            <div class="doc-subblock">
-                                <p><strong>Misc</strong></p>
-                                <p>${nl2br(stageMisc)}</p>
-                            </div>
-                        ` : ''}
+                        <div class="doc-subblock">
+                            <p><strong>8. Misc Information</strong></p>
+                            <p>${stageMisc ? nl2br(stageMisc) : 'Add any additional stage-specific notes, installation or removal details, manifest notes, approvals or other supporting information if required.'}</p>
+                        </div>
                         <div class="doc-placeholder">Insert the TGS figure for "${e(stage)}" from the right panel — drag or use the "Insert at cursor" button. Add site-active and aftercare figures.</div>
                     `;
                 }).join('') : `
@@ -2196,18 +3413,54 @@
                 <hr class="doc-section-break">
 
                 <!-- ===== APPENDIX B ===== -->
-                <h2><em>Appendix B</em> Traffic Guidance Scheme (TGS)</h2>
+                <h2><em>Appendix B</em> Crash History</h2>
+                <div class="doc-placeholder">Summarise recent crash history relevant to the surrounding network and note how those risks inform the TMP controls.</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX C ===== -->
+                <h2><em>Appendix C</em> Weather</h2>
+                <div class="doc-placeholder">Add any project-specific heat, storm or inclement weather controls if required by the site.</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX D ===== -->
+                <h2><em>Appendix D</em> Acceptable Traffic Impacts / L.O.S.</h2>
+                <div class="doc-placeholder">Add queue length estimation, LOS commentary and traffic impact acceptance notes where applicable.</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX E ===== -->
+                <h2><em>Appendix E</em> Traffic Guidance Scheme (TGS)</h2>
                 <p>Insert the full TGS set below. Use the right-hand panel to drag or insert each sheet.</p>
                 <div class="tgs-drop-hint">Drop TGS images here, or place the cursor anywhere in the document and click "Insert at cursor" on a TGS card.</div>
 
                 <hr class="doc-section-break">
 
-                <h2><em>Optional Supporting Appendices</em></h2>
-                <h3>Appendix C – Weather</h3>
-                <div class="doc-placeholder">Add any project-specific heat, storm or inclement weather controls if required by the site.</div>
+                <!-- ===== APPENDIX F ===== -->
+                <h2><em>Appendix F</em> Desktop Risk Assessment</h2>
+                <div class="doc-placeholder">Insert the desktop risk assessment summary or export from the linked risk assessment workflow.</div>
 
-                <h3>Appendix D – Acceptable Traffic Impacts / L.O.S.</h3>
-                <div class="doc-placeholder">Add queue length estimation, LOS commentary and traffic impact acceptance notes where applicable.</div>
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX G ===== -->
+                <h2><em>Appendix G</em> Project Schedule</h2>
+                <p><strong>Programmed start:</strong> ${e(startDate)} &nbsp; <strong>Programmed finish:</strong> ${e(endDate)} &nbsp; <strong>Duration:</strong> ${e(duration)}</p>
+                <div class="doc-placeholder">Insert the project schedule, staging program, or milestone table here.</div>
+
+                <hr class="doc-section-break">
+
+                <!-- ===== APPENDIX H ===== -->
+                <h2><em>Appendix H</em> Road &amp; Footpath Occupancy Map</h2>
+                <div class="doc-placeholder">Insert occupancy mapping, access plans, or other road and footpath occupation sketches here.</div>
+
+                ${supportingFiles.length ? `
+                    <hr class="doc-section-break">
+                    <h2><em>Uploaded Supporting Files</em></h2>
+                    <ul>
+                        ${supportingFiles.map(fileName => `<li>${e(fileName)}</li>`).join('')}
+                    </ul>
+                ` : ''}
 
             </div>
         `;
@@ -2224,6 +3477,7 @@
         tgsAnalyzedPreview.innerHTML = pages.slice(0, 12).map(page => `
             <div class="tgs-preview-thumb">
                 <img src="${page.imageUrl}" alt="${escapeHtml(page.label || 'TGS sheet')}" />
+                ${page.pageType ? `<div class="tgs-preview-chip">${escapeHtml(page.pageType)}</div>` : ''}
                 <div class="field-note"><strong>${escapeHtml(page.label || `TGS Page ${page.pageNumber}`)}</strong>${page.subtitle ? `<br>${escapeHtml(page.subtitle)}` : ''}</div>
             </div>
         `).join('');
@@ -2341,11 +3595,17 @@
             }
 
             const data = await response.json();
+            currentTgsAnalysisSummary = {
+                ...data,
+                rawStages: asArray(data.stages),
+                stages: getCleanSuggestedStages(data.stages || [])
+            };
             currentTgsPreviewPages = data.pages || [];
             renderTgsLibrary(currentTgsPreviewPages);
             renderStagePlanner();
         } catch (error) {
             console.error('Error loading TGS preview pages:', error);
+            currentTgsAnalysisSummary = null;
             currentTgsPreviewPages = [];
             renderTgsLibrary([]);
             tgsLibraryGrid.innerHTML = `
@@ -2368,12 +3628,39 @@
     }
 
     function applyTgsSuggestions(data) {
+        const toDateInputValue = rawValue => {
+            const value = String(rawValue || '').trim();
+            if (!value) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return value;
+            }
+            const match = value.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+            if (!match) {
+                return '';
+            }
+            const [, day, month, year] = match;
+            const fullYear = year.length === 2 ? `20${year}` : year;
+            return `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        };
+
         const projectName = document.getElementById('projectName');
         const projectLocation = document.getElementById('projectLocation');
         const localGovernmentArea = document.getElementById('localGovernmentArea');
         const clientCompany = document.getElementById('clientCompany');
+        const clientContact = document.getElementById('clientContact');
+        const clientPhone = document.getElementById('clientPhone');
+        const clientEmail = document.getElementById('clientEmail');
         const trafficControlCompany = document.getElementById('trafficControlCompany');
         const constructionActivity = document.getElementById('constructionActivity');
+        const authorName = document.getElementById('authorName');
+        const authorPosition = document.getElementById('authorPosition');
+        const authorDate = document.getElementById('authorDate');
+        const ntoName = document.getElementById('ntoName');
+        const ntoOpNumber = document.getElementById('ntoOpNumber');
+        const ccNumber = document.getElementById('ccNumber');
+        const revisionNumber = document.getElementById('revisionNumber');
         const tgsReference = document.getElementById('tgsReference');
 
         if (projectName && data.projectName && !projectName.value.trim()) {
@@ -2388,52 +3675,141 @@
         if (clientCompany && data.clientCompany && !clientCompany.value.trim()) {
             clientCompany.value = data.clientCompany;
         }
+        if (clientContact && data.clientContact && !clientContact.value.trim()) {
+            clientContact.value = data.clientContact;
+        }
+        if (clientPhone && data.clientPhone && !clientPhone.value.trim()) {
+            clientPhone.value = data.clientPhone;
+        }
+        if (clientEmail && data.clientEmail && !clientEmail.value.trim()) {
+            clientEmail.value = data.clientEmail;
+        }
         if (trafficControlCompany && data.trafficControlCompany && !trafficControlCompany.value.trim()) {
             trafficControlCompany.value = data.trafficControlCompany;
         }
-        if (constructionActivity && data.methodology && !constructionActivity.value.trim()) {
-            constructionActivity.value = data.methodology;
+        if (ccNumber && data.tgsNumber && !ccNumber.value.trim()) {
+            const ccMatch = String(data.tgsNumber).match(/CC\d{5}/i);
+            if (ccMatch) {
+                ccNumber.value = ccMatch[0].toUpperCase();
+            }
+        }
+        if (revisionNumber && data.revisionNumber && !revisionNumber.value.trim()) {
+            revisionNumber.value = data.revisionNumber;
+            updateDocumentReferencePreview();
+        }
+        if (authorName && data.designerName && !authorName.value.trim()) {
+            authorName.value = data.designerName;
+        }
+        if (authorPosition && data.designerName && !authorPosition.value.trim()) {
+            authorPosition.value = 'Traffic Management Designer';
+        }
+        if (authorDate && data.designerDate && !authorDate.value) {
+            const normalizedDate = toDateInputValue(data.designerDate);
+            if (normalizedDate) {
+                authorDate.value = normalizedDate;
+            }
+        }
+        if (ntoName && data.designerName && !ntoName.value.trim()) {
+            ntoName.value = data.designerName;
+        }
+        if (ntoOpNumber && data.designerTmdNumber && !ntoOpNumber.value.trim()) {
+            ntoOpNumber.value = data.designerTmdNumber;
+        }
+        if (constructionActivity && (data.methodology || data.pageType) && !constructionActivity.value.trim()) {
+            constructionActivity.value = data.methodology || data.pageType;
         }
         if (tgsReference && data.sheetReference && !tgsReference.value.trim()) {
             tgsReference.value = data.sheetReference;
         }
 
-        applySuggestedStages(data.stages || []);
+        const suggestedStages = getCleanSuggestedStages(data.stages || []);
+        applySuggestedStages(suggestedStages);
         renderStagePlanner();
 
         const firstInfoField = stagePlanner?.querySelector('[id^="stageInfo_"]');
         if (firstInfoField && !String(firstInfoField.value || '').trim()) {
-            const infoParts = [data.methodology, data.crossStreets, data.roadSpeed].filter(Boolean);
+            const infoParts = [
+                data.suite ? `Suite: ${data.suite}` : '',
+                suggestedStages.length ? `Stage: ${suggestedStages[0]}` : '',
+                data.methodology ? `Method: ${data.methodology}` : '',
+                data.crossStreets,
+                data.roadSpeed
+            ].filter(Boolean);
             if (infoParts.length) {
                 firstInfoField.value = infoParts.join('\n');
             }
         }
 
-        if (data.optionAnalysis) {
-            const firstOptionField = stagePlanner?.querySelector('[id^="stageOptionAnalysis_"]');
-            if (firstOptionField && !String(firstOptionField.value || '').trim()) {
-                firstOptionField.value = data.optionAnalysis;
+        const firstOptionField = stagePlanner?.querySelector('[id^="stageOptionAnalysis_"]');
+        if (firstOptionField && !String(firstOptionField.value || '').trim()) {
+            const extractedOptionText = data.extractedOptionAnalysis || data.optionAnalysis;
+            if (extractedOptionText) {
+                firstOptionField.value = extractedOptionText;
             }
         }
 
-        const stageList = (data.stages || []).length ? data.stages.map(item => `<li>${escapeHtml(item)}</li>`).join('') : '<li>No staging was detected.</li>';
+        const firstRiskField = stagePlanner?.querySelector('[id^="stageRisk_"]');
+        if (firstRiskField && data.extractedRiskAssessment && !String(firstRiskField.value || '').trim()) {
+            firstRiskField.value = data.extractedRiskAssessment;
+        }
+
+        const firstMiscField = stagePlanner?.querySelector('[id^="stageMisc_"]');
+        if (firstMiscField && !String(firstMiscField.value || '').trim()) {
+            const miscParts = [
+                data.installationProcess ? `Installation Process\n${data.installationProcess}` : '',
+                data.removalProcess ? `Removal Process\n${data.removalProcess}` : '',
+                data.manifestText ? `Manifest\n${data.manifestText}` : ''
+            ].filter(Boolean);
+            if (miscParts.length) {
+                firstMiscField.value = miscParts.join('\n\n');
+            }
+        }
+
+        const rawStages = asArray(data.rawStages || data.stages || []);
+        const filteredStageCount = Math.max(0, rawStages.length - suggestedStages.length);
+        const stageList = suggestedStages.length ? suggestedStages.map(item => `<li>${escapeHtml(item)}</li>`).join('') : '<li>No reliable staging was detected.</li>';
         tgsSuggestionPanel.innerHTML = `
             <div class="reference-card-title">Suggested values from the uploaded TGS</div>
             <ul class="cleanup-list">
+                <li><strong>Cover page detected:</strong> ${escapeHtml(data.coverPageDetected ? 'Yes' : 'No')}</li>
+                <li><strong>TIA page detected:</strong> ${escapeHtml(data.tiaPageDetected ? 'Yes' : 'No')}</li>
+                <li><strong>Option/risk page detected:</strong> ${escapeHtml(data.optionRiskPageDetected ? 'Yes' : 'No')}</li>
+                <li><strong>Design page detected:</strong> ${escapeHtml(data.designPageDetected ? 'Yes' : 'No')}</li>
+                <li><strong>Page type:</strong> ${escapeHtml(data.pageType || 'Not detected')}</li>
                 <li><strong>Suite:</strong> ${escapeHtml(data.suite || 'Not detected')}</li>
-                <li><strong>Methodology:</strong> ${escapeHtml(data.methodology || 'Not detected')}</li>
-                <li><strong>Site:</strong> ${escapeHtml(data.siteLocation || 'Not detected')}</li>
+                <li><strong>Design company:</strong> ${escapeHtml(data.designCompany || 'Not detected')}</li>
+                <li><strong>Client company:</strong> ${escapeHtml(data.clientCompany || 'Not detected')}</li>
+                <li><strong>Client contact:</strong> ${escapeHtml(data.clientContact || 'Not detected')}</li>
+                <li><strong>Client phone:</strong> ${escapeHtml(data.clientPhone || 'Not detected')}</li>
+                <li><strong>Client email:</strong> ${escapeHtml(data.clientEmail || 'Not detected')}</li>
+                <li><strong>Work address:</strong> ${escapeHtml(data.siteLocation || 'Not detected')}</li>
                 <li><strong>Cross streets:</strong> ${escapeHtml(data.crossStreets || 'Not detected')}</li>
                 <li><strong>Road speed:</strong> ${escapeHtml(data.roadSpeed || 'Not detected')}</li>
-                <li><strong>TGS reference:</strong> ${escapeHtml(data.sheetReference || 'Not detected')}</li>
+                <li><strong>Design scale:</strong> ${escapeHtml(data.designScale || 'Not detected')}</li>
+                <li><strong>Orientation:</strong> ${escapeHtml(data.orientation || 'Not detected')}</li>
+                <li><strong>Designer:</strong> ${escapeHtml(data.designerName || 'Not detected')}</li>
+                <li><strong>TMD / OP:</strong> ${escapeHtml(data.designerTmdNumber || 'Not detected')}</li>
+                <li><strong>Design date:</strong> ${escapeHtml(data.designerDate || 'Not detected')}</li>
+                <li><strong>TGS number:</strong> ${escapeHtml(data.tgsNumber || data.sheetReference || 'Not detected')}</li>
+                <li><strong>Revision number:</strong> ${escapeHtml(data.revisionNumber || 'Not detected')}</li>
             </ul>
             <div class="reference-card-title" style="margin-top: 10px;">Suggested construction staging</div>
             <ul class="cleanup-list">${stageList}</ul>
+            ${filteredStageCount ? `<div class="field-note" style="margin-top: 8px;">${filteredStageCount} low-confidence stage suggestion${filteredStageCount === 1 ? ' was' : 's were'} ignored to keep the planner cleaner.</div>` : ''}
             <div class="reference-card-title" style="margin-top: 10px;">Option analysis preview</div>
-            <div class="field-note">${escapeHtml(data.optionAnalysis || 'No option analysis generated yet.')}</div>
+            <div class="field-note">${escapeHtml(data.extractedOptionAnalysis || data.optionAnalysis || 'No option analysis generated yet.').replace(/\n/g, '<br>')}</div>
+            <div class="reference-card-title" style="margin-top: 10px;">Risk assessment preview</div>
+            <div class="field-note">${escapeHtml(data.extractedRiskAssessment || 'No risk assessment extracted yet.').replace(/\n/g, '<br>')}</div>
+            <div class="reference-card-title" style="margin-top: 10px;">Installation process</div>
+            <div class="field-note">${escapeHtml(data.installationProcess || 'Not detected').replace(/\n/g, '<br>')}</div>
+            <div class="reference-card-title" style="margin-top: 10px;">Removal process</div>
+            <div class="field-note">${escapeHtml(data.removalProcess || 'Not detected').replace(/\n/g, '<br>')}</div>
+            <div class="reference-card-title" style="margin-top: 10px;">Manifest</div>
+            <div class="field-note">${escapeHtml(data.manifestText || 'Not detected').replace(/\n/g, '<br>')}</div>
         `;
         tgsSuggestionPanel.style.display = 'block';
         updateSectionStatuses();
+        scheduleWizardPreviewRender();
     }
 
     async function analyzeTgs() {
@@ -2459,14 +3835,20 @@
             }
 
             const data = await response.json();
+            currentTgsAnalysisSummary = {
+                ...data,
+                rawStages: asArray(data.stages),
+                stages: getCleanSuggestedStages(data.stages || [])
+            };
             currentTgsPreviewPages = data.pages || [];
             renderTgsLibrary(currentTgsPreviewPages);
             renderAnalyzedTgsPreview(currentTgsPreviewPages);
-            applyTgsSuggestions(data);
+            applyTgsSuggestions(currentTgsAnalysisSummary);
             tgsAnalysisStatus.textContent = `TGS analysis complete. ${currentTgsPreviewPages.length} pages were extracted and previewed.`;
         } catch (error) {
             console.error('Error analysing TGS:', error);
             tgsAnalysisStatus.textContent = 'TGS analysis failed.';
+            currentTgsAnalysisSummary = null;
             renderAnalyzedTgsPreview([]);
             alert('There was an error analysing the TGS: ' + error.message);
         } finally {
@@ -2720,6 +4102,7 @@
             templateStats.innerHTML = '';
             templateFieldContainer.innerHTML = '';
             templateCleanupIndex.innerHTML = '';
+            applyWizardLayout(getWizardStep());
             return;
         }
 
@@ -2741,6 +4124,8 @@
         } catch (error) {
             console.error('Error loading template index:', error);
             templateSummary.textContent = 'Failed to load the template parameter index: ' + error.message;
+        } finally {
+            applyWizardLayout(getWizardStep());
         }
     }
 
@@ -2875,9 +4260,11 @@ ${documentEditor.innerHTML}
 
     initializeAllDynamicEditors();
     renderStagePlanner();
+    renderClientLogoPreview();
     updateTemplateRelevance();
     updateSectionStatuses();
     updateUploadDisplay();
+    setWizardStep(localStorage.getItem(WIZARD_STEP_STORAGE_KEY) || 'home', { scroll: false });
     showRestoreBannerIfNeeded();
 </script>
 

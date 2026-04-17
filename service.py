@@ -379,7 +379,143 @@ def is_address_like(text):
     cleaned = clean_scanned_line(text)
     if not cleaned:
         return False
-    return bool(re.search(r'\b\d+\s+.*\b(?:RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|HWY|HIGHWAY|CT|COURT|PDE|PARADE|CRES|CRESCENT|PL|PLACE|BLVD|BOULEVARD)\b.*\b(?:QLD|NSW|VIC|SA|WA|TAS|NT|ACT)\b', cleaned, re.IGNORECASE))
+    return bool(re.search(r'\b\d+[\/\-\d]*\s+.*\b(?:RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|HWY|HIGHWAY|CT|COURT|PDE|PARADE|CRES|CRESCENT|PL|PLACE|BLVD|BOULEVARD|TCE|TERRACE)\b(?:.*\b(?:QLD|NSW|VIC|SA|WA|TAS|NT|ACT)\b)?', cleaned, re.IGNORECASE))
+
+
+def is_cover_page_marker(text):
+    cleaned = clean_scanned_line(text).upper()
+    collapsed = cleaned.replace(' ', '')
+    return 'COVERPAGE' in collapsed or 'COVER PAGE' in cleaned
+
+
+def is_tia_page_marker(text):
+    cleaned = clean_scanned_line(text).upper()
+    return any(marker in cleaned for marker in (
+        'TRAFFIC IMPACT ANALYSIS',
+        'TRAFFIC IMPACT ASSESSMENT',
+        'TRAFFIC IMPACT',
+    ))
+
+
+def is_option_risk_page_marker(text):
+    cleaned = clean_scanned_line(text).upper()
+    return any(marker in cleaned for marker in (
+        'VEHICULAR TRAFFIC',
+        'PEDESTRIANS/CYCLISTS ON FOOTPATH',
+        'AFFECTED BUS STOP',
+        'POTENTIAL RISK',
+        'PROPOSED CONTROL MEASURE',
+        'INSTALLATION PROCESS',
+        'REMOVAL PROCESS',
+        'MANIFEST',
+    ))
+
+
+def is_design_page_marker(text):
+    cleaned = clean_scanned_line(text).upper()
+    return any(marker in cleaned for marker in (
+        'WORK AREA EXTRACT',
+        'LEGEND',
+        'LAYDOWN AREA',
+        'LOADING ZONE',
+        'EXISTING FENCE',
+        'WORK ZONE',
+    ))
+
+
+def extract_revision_value(text):
+    cleaned = clean_scanned_line(text)
+    match = re.search(r'\bREV(?:ISION)?\b\s*#?\s*[:\-]?\s*([A-Z0-9]+)\b', cleaned, re.IGNORECASE)
+    return match.group(1).upper() if match else ''
+
+
+def extract_email_value(text):
+    cleaned = clean_scanned_line(text)
+    match = re.search(r'([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})', cleaned, re.IGNORECASE)
+    return match.group(1).lower() if match else ''
+
+
+def extract_phone_value(text):
+    cleaned = clean_scanned_line(text)
+    match = re.search(r'((?:\+?61|0)\s*\d(?:[\s\-]?\d){7,9})', cleaned)
+    return re.sub(r'\s+', ' ', match.group(1)).strip() if match else ''
+
+
+def extract_date_value(text):
+    cleaned = clean_scanned_line(text)
+    match = re.search(r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b', cleaned)
+    return match.group(1) if match else ''
+
+
+def extract_labeled_value(lines, index, label_pattern):
+    line = clean_scanned_line(lines[index]) if index < len(lines) else ''
+    if not line:
+        return ''
+
+    inline_match = re.search(rf'{label_pattern}\s*[:\-]?\s*(.+)$', line, re.IGNORECASE)
+    if inline_match:
+        value = clean_scanned_line(inline_match.group(1))
+        if value and value not in {':', '-', '/'}:
+            return value
+
+    if re.search(label_pattern, line, re.IGNORECASE):
+        for lookahead in lines[index + 1:index + 4]:
+            candidate = clean_scanned_line(lookahead)
+            if candidate and not re.search(r'^(CONTACT|PHONE|EMAIL|DESIGN SCALE|TGS|REVISION|SIGNED)\b', candidate, re.IGNORECASE):
+                return candidate
+
+    return ''
+
+
+def extract_section_block(lines, start_markers, stop_markers=None, max_lines=40):
+    stop_markers = stop_markers or []
+    start_index = next(
+        (index for index, line in enumerate(lines) if any(marker in line.upper() for marker in start_markers)),
+        -1,
+    )
+    if start_index < 0:
+        return ''
+
+    collected = []
+    for index in range(start_index, min(len(lines), start_index + max_lines)):
+        line = clean_scanned_line(lines[index])
+        upper = line.upper()
+        if collected and any(marker in upper for marker in stop_markers):
+            break
+        if upper in {'OPTION', 'DESCRIPTION', 'REASONING', 'SELECTED', 'FEATURES', 'CLOSURE TYPE'}:
+            continue
+        if line and line not in collected:
+            collected.append(line)
+
+    return '\n'.join(collected).strip()
+
+
+def combine_unique_text_blocks(values):
+    blocks = []
+    for value in values or []:
+        cleaned = str(value or '').strip()
+        if cleaned and cleaned not in blocks:
+            blocks.append(cleaned)
+    return '\n\n'.join(blocks)
+
+
+def score_address_candidate(lines, index, candidate):
+    score = 0
+    nearby = ' | '.join(lines[max(0, index - 3): min(len(lines), index + 4)]).upper()
+    candidate_upper = clean_scanned_line(candidate).upper()
+
+    if any(marker in nearby for marker in ('BETWEEN ', 'ROAD SPEED', 'TGS #', 'REVISION #', 'WORK AREA EXTRACT')):
+        score += 6
+    if any(marker in nearby for marker in ('CONSTRUCTION', 'EXCAVATION', 'WORKS', 'TURNING', 'HAULAGE')):
+        score += 4
+    if re.search(r'\bQLD\b', candidate_upper):
+        score += 3
+    if any(marker in nearby for marker in ('CROMPTON', 'OFFICE', 'WEB:', 'EMAIL:', 'TMR REGISTRATION')):
+        score -= 8
+    if 'PACKER RD' in candidate_upper or 'BURPENGARY' in candidate_upper:
+        score -= 10
+
+    return score
 
 
 def infer_local_government_area(text):
@@ -409,18 +545,37 @@ def is_valid_stage_candidate(text):
     if upper in {stage.upper() for stage in KNOWN_TGS_STAGES}:
         return True
 
+    if is_cover_page_marker(cleaned):
+        return False
+    if cleaned.startswith('(') or cleaned.endswith(':'):
+        return False
     if re.search(r'\.{4,}', cleaned) or re.fullmatch(r'\d+(?:\s*OF\s*\d+)?', upper):
         return False
-    if upper.startswith(('PAGE ', 'FIGURE ', 'TABLE ', 'NOTE', 'NOTES', 'DESCRIPTION', 'CONTACT', 'ROAD SPEED', 'BETWEEN ')):
+    if upper.startswith(('PAGE ', 'FIGURE ', 'TABLE ', 'NOTE', 'NOTES', 'DESCRIPTION', 'CONTACT', 'ROAD SPEED', 'BETWEEN ', 'REVISION')):
         return False
-    if upper in {'DESCRIPTION', 'NOTES', 'CONTACT', 'RISK ASSESSMENT', 'PLAN', 'ROAD', 'RD'}:
+    if upper in {'DESCRIPTION', 'NOTES', 'CONTACT', 'RISK ASSESSMENT', 'PLAN', 'ROAD', 'RD', 'CONSTRUCTION'}:
         return False
     if is_address_like(cleaned):
         return False
+    if any(marker in upper for marker in (
+        'TRAFFIC IMPACT', 'OPTION ANALYSIS', 'RISK ASSESSMENT', 'VEHICULAR TRAFFIC',
+        'PEDESTRIANS/CYCLISTS', 'AFFECTED BUS STOP', 'POTENTIAL RISK',
+        'INSTALLATION PROCESS', 'REMOVAL PROCESS', 'MANIFEST', 'TRAFFIC MANAGEMENT',
+        'TRAFFIC CONTROL', 'QUEUE', 'LOS', 'VCR', 'DESIGN SCALE'
+    )):
+        return False
+    if re.search(r'[:;,]', cleaned):
+        return False
+
+    word_count = len(re.findall(r'[A-Z0-9]+', upper.replace('/', ' ')))
+    if word_count == 0 or word_count > 5:
+        return False
 
     return any(keyword in upper for keyword in (
-        'WORKS', 'INSTALLATION', 'INSPECTION', 'LOCATING', 'CONSTRUCTION',
-        'TRENCH', 'REINSTATEMENT', 'MARKING', 'SWITCH', 'EXCAVATION'
+        'WORKS', 'INSTALLATION', 'INSPECTION', 'LOCATING', 'TRENCH', 'TRENCHING',
+        'REINSTATEMENT', 'MARKING', 'SIGNAGE', 'SWITCH', 'EXCAVATION', 'CONSTRUCTION',
+        'RELOCATION', 'DEMOLITION', 'PAVEMENT', 'KERB', 'CHANNEL', 'CROSSOVER',
+        'BARRIER', 'SERVICE', 'FOOTPATH', 'PIT'
     ))
 
 
@@ -430,16 +585,18 @@ def is_valid_methodology_candidate(text):
         return False
 
     upper = cleaned.upper()
+    if is_cover_page_marker(cleaned):
+        return False
     if re.search(r'\.{4,}', cleaned):
         return False
-    if upper.startswith(('FIGURE ', 'TABLE ', 'PAGE ', 'DESCRIPTION', 'NOTES', 'CONTACT')):
+    if upper.startswith(('FIGURE ', 'TABLE ', 'PAGE ', 'DESCRIPTION', 'NOTES', 'CONTACT', 'REVISION')):
         return False
     if 'ROAD SPEED' in upper or upper.startswith('BETWEEN ') or is_address_like(cleaned):
         return False
 
-    return any(keyword in upper for keyword in (
+    return cleaned.startswith('(') or any(keyword in upper for keyword in (
         'PEDESTRIAN', 'LANE', 'CLOSURE', 'DETOUR', 'STOP/SLOW', 'STOP SLOW',
-        'WORKS', 'TRAFFIC MANAGEMENT', 'TRAFFIC CONTROL', 'FOOTPATH'
+        'WORKS', 'TRAFFIC MANAGEMENT', 'TRAFFIC CONTROL', 'FOOTPATH', 'TURNING', 'HAULAGE'
     ))
 
 
@@ -449,6 +606,60 @@ def best_candidate(values):
         return ''
     counts = Counter(cleaned_values)
     return sorted(counts.items(), key=lambda item: (-item[1], -len(item[0])))[0][0]
+
+
+def normalize_stage_candidate(text):
+    cleaned = clean_scanned_line(text).strip(' -–')
+    if not cleaned:
+        return ''
+
+    for stage in KNOWN_TGS_STAGES:
+        if cleaned.upper() == stage.upper():
+            return stage
+
+    return cleaned
+
+
+def get_tgs_stage_reference_key(value):
+    match = re.search(r'CC\d{5}-S\d+', clean_scanned_line(value).upper())
+    return match.group(0) if match else ''
+
+
+def normalize_uploaded_tgs_pages(uploaded_images):
+    normalized_pages = [dict(item) for item in uploaded_images or []]
+    reference_stage_map = {}
+
+    for item in normalized_pages:
+        reference_key = get_tgs_stage_reference_key(item.get('sheet_reference', ''))
+        stage_name = normalize_stage_candidate(item.get('stage_name', ''))
+        if not reference_key or not is_valid_stage_candidate(stage_name):
+            continue
+        if item.get('is_cover_page') or item.get('is_tia_page'):
+            continue
+
+        priority = 2 if item.get('is_design_page') else 1 if item.get('is_option_risk_page') else 0
+        existing = reference_stage_map.get(reference_key)
+        if existing is None or priority > existing['priority']:
+            reference_stage_map[reference_key] = {
+                'priority': priority,
+                'stage': stage_name,
+            }
+
+    for item in normalized_pages:
+        reference_key = get_tgs_stage_reference_key(item.get('sheet_reference', ''))
+        stage_name = normalize_stage_candidate(item.get('stage_name', ''))
+        canonical_stage = ''
+
+        if item.get('is_cover_page') or item.get('is_tia_page'):
+            canonical_stage = ''
+        elif reference_key and reference_key in reference_stage_map:
+            canonical_stage = reference_stage_map[reference_key]['stage']
+        elif is_valid_stage_candidate(stage_name):
+            canonical_stage = stage_name
+
+        item['stage_name'] = canonical_stage
+
+    return normalized_pages
 
 
 def extract_tgs_metadata_from_text(page_text):
@@ -461,26 +672,91 @@ def extract_tgs_metadata_from_text(page_text):
         'cross_streets': '',
         'road_speed': '',
         'sheet_reference': '',
+        'revision_number': '',
         'project_name': '',
+        'design_company': '',
         'client_company': '',
+        'client_contact': '',
+        'client_phone': '',
+        'client_email': '',
         'traffic_control_company': '',
         'local_government_area': '',
+        'design_scale': '',
+        'orientation': '',
+        'designer_name': '',
+        'designer_tmd_number': '',
+        'designer_date': '',
+        'option_analysis_extract': '',
+        'risk_assessment_extract': '',
+        'installation_process': '',
+        'removal_process': '',
+        'manifest_text': '',
+        'page_type': '',
+        'is_cover_page': False,
+        'is_tia_page': False,
+        'is_option_risk_page': False,
+        'is_design_page': False,
     }
 
     if not lines:
         return metadata
 
-    sheet_pattern = re.compile(r'CC\d{5}-S\d+-?\d+[A-C]?', re.IGNORECASE)
-    company_pattern = re.compile(r'\b(?:PTY\s+LTD|CIVIL|CONSTRUCTION|CONTRACTORS?|BUILDERS?|DEVELOPMENTS?|TRAFFIC)\b', re.IGNORECASE)
+    sheet_pattern = re.compile(r'CC\d{5}-S\d+-?\d+[A-Z]?(?:\/[A-Z])?', re.IGNORECASE)
+    company_pattern = re.compile(r'\b(?:PTY\s+LTD|CONTRACTORS?|BUILDERS?|DEVELOPMENTS?|PROJECTS|GROUP|HOLDINGS|INFRASTRUCTURE)\b', re.IGNORECASE)
     project_pattern = re.compile(r'\b(?:PROJECT|SITE|LOCATION|ADDRESS)\s*[:\-]\s*(.+)', re.IGNORECASE)
+    scale_value_pattern = re.compile(r'\bA[1-5]\s*[-:]?\s*(?:NTS|\d+\s*[:/]\s*\d+)\b', re.IGNORECASE)
 
-    for line in lines[:40]:
+    cover_index = next((index for index, line in enumerate(lines[:25]) if is_cover_page_marker(line)), -1)
+    if cover_index >= 0:
+        metadata['is_cover_page'] = True
+        metadata['page_type'] = 'Cover Page'
+        cover_line = lines[cover_index]
+        suite_candidate = re.sub(r'\(?\s*COVER\s*PAGE\s*\)?', '', cover_line, flags=re.IGNORECASE).strip(' -–()')
+        if suite_candidate and suite_candidate.upper() not in {'COVER', 'PAGE'}:
+            metadata['suite'] = suite_candidate
+        elif cover_index > 0:
+            previous_line = clean_scanned_line(lines[cover_index - 1])
+            if previous_line and 'CROMPTON' not in previous_line.upper():
+                metadata['suite'] = previous_line
+
+    option_markers_seen = 0
+    design_markers_seen = 0
+    address_candidates = []
+
+    for index, line in enumerate(lines[:120]):
         upper = line.upper()
+        next_line = clean_scanned_line(lines[index + 1]) if index + 1 < len(lines) else ''
+
+        if is_tia_page_marker(line):
+            metadata['is_tia_page'] = True
+            metadata['page_type'] = 'Traffic Impact Analysis'
+            if not metadata['methodology']:
+                metadata['methodology'] = '(Traffic Impact Analysis)'
+            tia_suite = re.sub(r'\(?\s*TRAFFIC\s+IMPACT\s+(?:ANALYSIS|ASSESSMENT)\s*\)?', '', line, flags=re.IGNORECASE).strip(' -–()')
+            if tia_suite and tia_suite.upper() not in {'TRAFFIC IMPACT', 'ANALYSIS', 'ASSESSMENT'}:
+                metadata['suite'] = metadata['suite'] or tia_suite
+
+        if is_option_risk_page_marker(line):
+            option_markers_seen += 1
+            metadata['is_option_risk_page'] = True
+            if metadata['page_type'] != 'Cover Page':
+                metadata['page_type'] = 'Option Analysis and Risk Assessment'
+            if not metadata['suite']:
+                metadata['suite'] = 'Construction'
+
+        if is_design_page_marker(line):
+            design_markers_seen += 1
+
+        if 'CROMPTON' in upper and not metadata['design_company']:
+            metadata['design_company'] = 'Crompton Concepts'
 
         if not metadata['sheet_reference']:
             match = sheet_pattern.search(upper)
             if match:
                 metadata['sheet_reference'] = match.group(0).upper()
+
+        if not metadata['revision_number']:
+            metadata['revision_number'] = extract_revision_value(line)
 
         if not metadata['road_speed'] and 'ROAD SPEED' in upper:
             metadata['road_speed'] = line
@@ -488,29 +764,79 @@ def extract_tgs_metadata_from_text(page_text):
         if not metadata['cross_streets'] and upper.startswith('BETWEEN '):
             metadata['cross_streets'] = line
 
+        if 'DESIGN SCALE' in upper and not metadata['design_scale']:
+            scale_fragments = []
+            current_scale = re.sub(r'DESIGN\s*SCALE\s*[:\-]?', '', line, flags=re.IGNORECASE).strip()
+            if current_scale:
+                scale_fragments.append(current_scale)
+            for candidate in lines[index + 1:index + 5]:
+                if scale_value_pattern.search(candidate):
+                    scale_fragments.append(clean_scanned_line(candidate))
+            metadata['design_scale'] = ' | '.join(dict.fromkeys(fragment for fragment in scale_fragments if fragment))
+            metadata['orientation'] = 'North arrow shown on plan'
+        elif scale_value_pattern.search(line) and not metadata['design_scale']:
+            metadata['design_scale'] = line
+            metadata['orientation'] = 'North arrow shown on plan'
+
+        if not metadata['client_contact']:
+            contact_value = extract_labeled_value(lines, index, r'CONTACT')
+            if contact_value and not extract_phone_value(contact_value) and not extract_email_value(contact_value):
+                metadata['client_contact'] = contact_value
+
+        if not metadata['client_phone']:
+            phone_value = extract_labeled_value(lines, index, r'PHONE')
+            extracted_phone = extract_phone_value(phone_value) or extract_phone_value(line) or extract_phone_value(next_line)
+            if extracted_phone:
+                metadata['client_phone'] = extracted_phone
+
+        if not metadata['client_email']:
+            email_value = extract_labeled_value(lines, index, r'EMAIL')
+            extracted_email = extract_email_value(email_value) or extract_email_value(line) or extract_email_value(next_line)
+            if extracted_email:
+                metadata['client_email'] = extracted_email
+
+        if not metadata['designer_name']:
+            designer_value = extract_labeled_value(lines, index, r'TRAFFIC\s*MANAGEMENT\s*DESIGNER')
+            if designer_value and not extract_phone_value(designer_value) and not extract_email_value(designer_value):
+                metadata['designer_name'] = designer_value
+
+        if not metadata['designer_tmd_number']:
+            tmd_value = extract_labeled_value(lines, index, r'(?:TMD\s*#|OP\s*NUMBER|OP#)') or line
+            tmd_match = re.search(r'\bOP\s*[A-Z]?\d+\b', tmd_value, re.IGNORECASE)
+            if not tmd_match:
+                tmd_match = re.search(r'\bTMD\s*[#:\-]*\s*([A-Z]?\d+)\b', tmd_value, re.IGNORECASE)
+            if tmd_match:
+                metadata['designer_tmd_number'] = (tmd_match.group(0) if tmd_match.lastindex is None else tmd_match.group(1)).replace(' ', '').replace('#', '').replace(':', '').upper()
+
+        if not metadata['designer_date']:
+            date_value = extract_labeled_value(lines, index, r'DESIGN\s*DATE') or line
+            extracted_date = extract_date_value(date_value)
+            if extracted_date:
+                metadata['designer_date'] = extracted_date
+
         if not metadata['suite'] and any(word in upper for word in ('CIVIL', 'CONSTRUCTION', 'DRAINAGE', 'ROADWORK', 'TRAFFIC MANAGEMENT')):
-            if len(line) <= 80 and not re.search(r'\.{4,}', line) and 'ROAD SPEED' not in upper:
+            if len(line) <= 80 and not re.search(r'\.{4,}', line) and 'ROAD SPEED' not in upper and not is_cover_page_marker(line):
                 metadata['suite'] = line.replace(' - ', ' ').strip()
 
-        if not metadata['stage_name']:
-            for stage in KNOWN_TGS_STAGES:
-                if stage.upper() in upper:
-                    metadata['stage_name'] = stage
-                    break
-            if not metadata['stage_name'] and is_valid_stage_candidate(line):
-                metadata['stage_name'] = line
+        if not metadata['is_cover_page'] and not metadata['is_tia_page'] and not metadata['is_option_risk_page']:
+            if not metadata['stage_name'] and metadata['suite'] and line != metadata['suite']:
+                if len(line) <= 80 and not line.startswith('(') and not is_address_like(line) and not re.search(r'^(BETWEEN |ROAD SPEED|TGS|REVISION|CONTACT|PHONE|EMAIL|DESIGN SCALE)', upper):
+                    if is_valid_stage_candidate(line):
+                        metadata['stage_name'] = line
 
-        if not metadata['methodology'] and is_valid_methodology_candidate(line):
+            if not metadata['stage_name']:
+                for stage in KNOWN_TGS_STAGES:
+                    if stage.upper() in upper:
+                        metadata['stage_name'] = stage
+                        break
+                if not metadata['stage_name'] and is_valid_stage_candidate(line):
+                    metadata['stage_name'] = line
+
+        if not metadata['methodology'] and (is_valid_methodology_candidate(line) or (line.startswith('(') and line.endswith(')'))):
             metadata['methodology'] = line if line.startswith('(') else f'({line})'
 
-        if not metadata['site_location'] and is_address_like(line):
-            metadata['site_location'] = line
-            metadata['local_government_area'] = metadata['local_government_area'] or infer_local_government_area(line)
-            if not metadata['project_name']:
-                project_parts = re.split(r'\s+[–-]\s+', line, maxsplit=1)
-                if len(project_parts) == 2 and not is_address_like(project_parts[0]):
-                    metadata['project_name'] = clean_scanned_line(project_parts[0])
-                    metadata['site_location'] = clean_scanned_line(project_parts[1])
+        if is_address_like(line):
+            address_candidates.append((score_address_candidate(lines, index, line), line))
 
         if not metadata['project_name']:
             project_match = project_pattern.search(line)
@@ -519,17 +845,109 @@ def extract_tgs_metadata_from_text(page_text):
                 if candidate and not is_address_like(candidate):
                     metadata['project_name'] = candidate
 
-        if not metadata['client_company'] and company_pattern.search(line) and 'CROMPTON CONCEPTS' not in upper:
-            if len(line) <= 90 and not upper.startswith(('FIGURE ', 'PAGE ', 'TABLE ')):
+        if not metadata['client_company'] and company_pattern.search(line) and 'CROMPTON' not in upper:
+            if len(line) <= 90 and not upper.startswith(('FIGURE ', 'PAGE ', 'TABLE ', 'ROAD SPEED', 'REVISION', 'CONTACT', 'PHONE', 'EMAIL', 'VEHICULAR TRAFFIC', 'PEDESTRIANS/CYCLISTS', 'AFFECTED BUS STOP', 'POTENTIAL RISK', 'INSTALLATION PROCESS', 'REMOVAL PROCESS', 'MANIFEST')) and not is_cover_page_marker(line) and not is_tia_page_marker(line) and not is_option_risk_page_marker(line) and 'TRAFFIC MANAGEMENT DESIGNER' not in upper:
                 metadata['client_company'] = line
 
-        if not metadata['traffic_control_company'] and 'TRAFFIC' in upper and 'CROMPTON CONCEPTS' not in upper:
-            if company_pattern.search(line) and len(line) <= 90:
+        if not metadata['traffic_control_company'] and 'TRAFFIC' in upper and 'CROMPTON' not in upper:
+            if company_pattern.search(line) and len(line) <= 90 and not is_cover_page_marker(line) and not is_tia_page_marker(line) and not is_option_risk_page_marker(line) and 'TRAFFIC MANAGEMENT DESIGNER' not in upper:
                 metadata['traffic_control_company'] = line
+
+    if metadata['is_option_risk_page'] or option_markers_seen >= 2:
+        metadata['is_option_risk_page'] = True
+        if metadata['page_type'] != 'Cover Page':
+            metadata['page_type'] = 'Option Analysis and Risk Assessment'
+
+        vehicular_block = extract_section_block(
+            lines,
+            ['VEHICULAR TRAFFIC'],
+            ['PEDESTRIANS/CYCLISTS ON FOOTPATH', 'AFFECTED BUS STOP', 'POTENTIAL RISK', 'INSTALLATION PROCESS'],
+            max_lines=35,
+        )
+        pedestrian_block = extract_section_block(
+            lines,
+            ['PEDESTRIANS/CYCLISTS ON FOOTPATH', 'PEDESTRIANS/CYCLISTS'],
+            ['AFFECTED BUS STOP', 'POTENTIAL RISK', 'INSTALLATION PROCESS'],
+            max_lines=25,
+        )
+        bus_stop_block = extract_section_block(
+            lines,
+            ['AFFECTED BUS STOP'],
+            ['POTENTIAL RISK', 'INSTALLATION PROCESS'],
+            max_lines=20,
+        )
+        risk_block = extract_section_block(
+            lines,
+            ['POTENTIAL RISK', 'HAZARD'],
+            ['INSTALLATION PROCESS', 'REMOVAL PROCESS', 'MANIFEST'],
+            max_lines=60,
+        )
+        installation_block = extract_section_block(
+            lines,
+            ['INSTALLATION PROCESS'],
+            ['REMOVAL PROCESS', 'MANIFEST'],
+            max_lines=20,
+        )
+        removal_block = extract_section_block(
+            lines,
+            ['REMOVAL PROCESS'],
+            ['MANIFEST'],
+            max_lines=20,
+        )
+        manifest_block = extract_section_block(
+            lines,
+            ['MANIFEST'],
+            [],
+            max_lines=25,
+        )
+
+        metadata['option_analysis_extract'] = '\n\n'.join(block for block in [vehicular_block, pedestrian_block, bus_stop_block] if block)
+        metadata['risk_assessment_extract'] = risk_block
+        metadata['installation_process'] = installation_block
+        metadata['removal_process'] = removal_block
+        metadata['manifest_text'] = manifest_block
+
+    if address_candidates:
+        address_candidates.sort(key=lambda item: (item[0], len(item[1])), reverse=True)
+        metadata['site_location'] = address_candidates[0][1]
+        metadata['local_government_area'] = metadata['local_government_area'] or infer_local_government_area(metadata['site_location'])
+
+    if not metadata['is_cover_page'] and not metadata['is_tia_page'] and not metadata['is_option_risk_page']:
+        if design_markers_seen >= 2 or (metadata['design_scale'] and metadata['sheet_reference']):
+            metadata['is_design_page'] = True
+            metadata['page_type'] = 'Design Page'
+
+    if metadata['site_location']:
+        site_index = next((i for i, value in enumerate(lines) if clean_scanned_line(value) == clean_scanned_line(metadata['site_location'])), -1)
+        if site_index >= 0:
+            nearby_lines = lines[site_index + 1:site_index + 5]
+            if not metadata['suite']:
+                suite_line = next((item for item in nearby_lines if item.upper() in {'CONSTRUCTION', 'CIVIL', 'DRAINAGE'}), '')
+                if suite_line:
+                    metadata['suite'] = suite_line
+            stage_line = next((item for item in nearby_lines if item and item != metadata['suite'] and is_valid_stage_candidate(item) and not re.search(r'^(BETWEEN |ROAD SPEED|TGS|REVISION)', item.upper()) and not is_address_like(item)), '')
+            if stage_line:
+                metadata['stage_name'] = stage_line
+            if not metadata['methodology']:
+                method_line = next((item for item in nearby_lines if item.startswith('(') and item.endswith(')')), '')
+                if method_line:
+                    metadata['methodology'] = method_line
+
+    metadata['stage_name'] = normalize_stage_candidate(metadata['stage_name'])
+    if metadata['stage_name'] and metadata['suite'] and metadata['stage_name'].upper() == metadata['suite'].upper():
+        metadata['stage_name'] = ''
+    if metadata['stage_name'] and not is_valid_stage_candidate(metadata['stage_name']):
+        metadata['stage_name'] = ''
+    if metadata['is_cover_page'] or metadata['is_tia_page'] or metadata['is_option_risk_page']:
+        metadata['stage_name'] = ''
 
     metadata['local_government_area'] = metadata['local_government_area'] or infer_local_government_area(metadata['site_location'])
 
-    if not metadata['methodology'] and metadata['stage_name']:
+    if not metadata['methodology'] and metadata['is_option_risk_page']:
+        metadata['methodology'] = '(Option analysis and risk assessment controls)'
+    elif not metadata['methodology'] and metadata['is_design_page'] and metadata['stage_name']:
+        metadata['methodology'] = f'({metadata["stage_name"]} methodology)'
+    elif not metadata['methodology'] and metadata['stage_name']:
         metadata['methodology'] = f'({metadata["stage_name"]} traffic management works)'
 
     return metadata
@@ -737,30 +1155,75 @@ def summarize_tgs_analysis(uploaded_images):
     cross_street_candidates = []
     speed_candidates = []
     sheet_candidates = []
+    revision_candidates = []
     project_candidates = []
+    design_company_candidates = []
     client_candidates = []
+    client_contact_candidates = []
+    client_phone_candidates = []
+    client_email_candidates = []
     traffic_company_candidates = []
     lga_candidates = []
+    scale_candidates = []
+    orientation_candidates = []
+    designer_name_candidates = []
+    designer_tmd_candidates = []
+    designer_date_candidates = []
+    option_extract_candidates = []
+    risk_extract_candidates = []
+    installation_candidates = []
+    removal_candidates = []
+    manifest_candidates = []
+    page_type_candidates = []
+    has_cover_page = False
+    has_tia_page = False
+    has_option_risk_page = False
+    has_design_page = False
 
     for item in uploaded_images or []:
+        if item.get('is_cover_page'):
+            has_cover_page = True
+        if item.get('is_tia_page'):
+            has_tia_page = True
+        if item.get('is_option_risk_page'):
+            has_option_risk_page = True
+        if item.get('is_design_page'):
+            has_design_page = True
+
         stage_name = clean_scanned_line(item.get('stage_name', ''))
         if is_valid_stage_candidate(stage_name):
             stage_candidates.append(stage_name)
 
         suite_candidates.append(item.get('suite', ''))
+        page_type_candidates.append(item.get('page_type', ''))
 
         methodology = clean_scanned_line(item.get('methodology', ''))
-        if is_valid_methodology_candidate(methodology):
+        if methodology and (is_valid_methodology_candidate(methodology) or is_tia_page_marker(methodology)):
             methodology_candidates.append(methodology)
 
         site_candidates.append(item.get('site_location', ''))
         cross_street_candidates.append(item.get('cross_streets', ''))
         speed_candidates.append(item.get('road_speed', ''))
         sheet_candidates.append(item.get('sheet_reference', ''))
+        revision_candidates.append(item.get('revision_number', ''))
         project_candidates.append(item.get('project_name', ''))
+        design_company_candidates.append(item.get('design_company', ''))
         client_candidates.append(item.get('client_company', ''))
+        client_contact_candidates.append(item.get('client_contact', ''))
+        client_phone_candidates.append(item.get('client_phone', ''))
+        client_email_candidates.append(item.get('client_email', ''))
         traffic_company_candidates.append(item.get('traffic_control_company', ''))
         lga_candidates.append(item.get('local_government_area', ''))
+        scale_candidates.append(item.get('design_scale', ''))
+        orientation_candidates.append(item.get('orientation', ''))
+        designer_name_candidates.append(item.get('designer_name', ''))
+        designer_tmd_candidates.append(item.get('designer_tmd_number', ''))
+        designer_date_candidates.append(item.get('designer_date', ''))
+        option_extract_candidates.append(item.get('option_analysis_extract', ''))
+        risk_extract_candidates.append(item.get('risk_assessment_extract', ''))
+        installation_candidates.append(item.get('installation_process', ''))
+        removal_candidates.append(item.get('removal_process', ''))
+        manifest_candidates.append(item.get('manifest_text', ''))
 
     recognized_stages = [stage for stage in KNOWN_TGS_STAGES if any(stage.lower() == candidate.lower() for candidate in stage_candidates)]
     additional_stages = []
@@ -770,22 +1233,47 @@ def summarize_tgs_analysis(uploaded_images):
     stages = recognized_stages + additional_stages[:4]
 
     suite = best_candidate(suite_candidates) or 'Construction'
+    page_type = best_candidate(page_type_candidates) or ('Option Analysis and Risk Assessment' if has_option_risk_page else ('Traffic Impact Analysis' if has_tia_page else ('Design Page' if has_design_page else ('Cover Page' if has_cover_page else 'TGS Page'))))
     methodology = best_candidate(methodology_candidates)
     site_location = best_candidate(site_candidates)
     cross_streets = best_candidate(cross_street_candidates)
     road_speed = best_candidate(speed_candidates)
     sheet_reference = best_candidate(sheet_candidates)
+    revision_number = best_candidate(revision_candidates)
     project_name = best_candidate(project_candidates)
+    design_company = best_candidate(design_company_candidates) or 'Crompton Concepts'
     client_company = best_candidate(client_candidates)
+    client_contact = best_candidate(client_contact_candidates)
+    client_phone = best_candidate(client_phone_candidates)
+    client_email = best_candidate(client_email_candidates)
     traffic_control_company = best_candidate(traffic_company_candidates)
     local_government_area = best_candidate(lga_candidates) or infer_local_government_area(site_location)
+    design_scale = best_candidate(scale_candidates)
+    orientation = best_candidate(orientation_candidates)
+    designer_name = best_candidate(designer_name_candidates)
+    designer_tmd_number = best_candidate(designer_tmd_candidates)
+    designer_date = best_candidate(designer_date_candidates)
+    extracted_option_analysis = combine_unique_text_blocks(option_extract_candidates)
+    extracted_risk_assessment = combine_unique_text_blocks(risk_extract_candidates)
+    installation_process = combine_unique_text_blocks(installation_candidates)
+    removal_process = combine_unique_text_blocks(removal_candidates)
+    manifest_text = combine_unique_text_blocks(manifest_candidates)
 
-    if not methodology and stages:
+    if not methodology and has_option_risk_page:
+        methodology = '(Option analysis and risk assessment controls)'
+    elif not methodology and has_tia_page:
+        methodology = '(Traffic Impact Analysis)'
+    elif not methodology and stages:
         methodology = f'({stages[0]} traffic management works)'
 
-    option_analysis = build_stage_option_analysis(stages, suite, methodology)
+    option_analysis = extracted_option_analysis or build_stage_option_analysis(stages, suite, methodology)
 
     return {
+        'coverPageDetected': has_cover_page,
+        'tiaPageDetected': has_tia_page,
+        'optionRiskPageDetected': has_option_risk_page,
+        'designPageDetected': has_design_page,
+        'pageType': page_type,
         'suite': suite,
         'stages': stages,
         'methodology': methodology,
@@ -793,11 +1281,27 @@ def summarize_tgs_analysis(uploaded_images):
         'crossStreets': cross_streets,
         'roadSpeed': road_speed,
         'sheetReference': sheet_reference,
+        'tgsNumber': sheet_reference,
+        'revisionNumber': revision_number,
         'projectName': project_name,
+        'designCompany': design_company,
         'clientCompany': client_company,
+        'clientContact': client_contact,
+        'clientPhone': client_phone,
+        'clientEmail': client_email,
         'trafficControlCompany': traffic_control_company,
         'localGovernmentArea': local_government_area,
+        'designScale': design_scale,
+        'orientation': orientation,
+        'designerName': designer_name,
+        'designerTmdNumber': designer_tmd_number,
+        'designerDate': designer_date,
         'optionAnalysis': option_analysis,
+        'extractedOptionAnalysis': extracted_option_analysis,
+        'extractedRiskAssessment': extracted_risk_assessment,
+        'installationProcess': installation_process,
+        'removalProcess': removal_process,
+        'manifestText': manifest_text,
     }
 
 
@@ -1068,10 +1572,23 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
         'cross_streets': '',
         'road_speed': '',
         'sheet_reference': '',
+        'revision_number': '',
         'project_name': '',
+        'design_company': '',
         'client_company': '',
+        'client_contact': '',
+        'client_phone': '',
+        'client_email': '',
         'traffic_control_company': '',
         'local_government_area': '',
+        'design_scale': '',
+        'orientation': '',
+        'designer_name': '',
+        'designer_tmd_number': '',
+        'designer_date': '',
+        'page_type': '',
+        'is_cover_page': '',
+        'is_tia_page': '',
     }
     for image_info in uploaded_images or []:
         for key in tgs_metadata:
@@ -1085,10 +1602,17 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
     tgs_cross_streets = tgs_metadata.get('cross_streets', '')
     tgs_road_speed = tgs_metadata.get('road_speed', '')
     tgs_sheet_reference = tgs_metadata.get('sheet_reference', '')
+    tgs_revision_number = tgs_metadata.get('revision_number', '')
     tgs_project_name = tgs_metadata.get('project_name', '')
     tgs_client_company = tgs_metadata.get('client_company', '')
+    tgs_client_contact = tgs_metadata.get('client_contact', '')
+    tgs_client_phone = tgs_metadata.get('client_phone', '')
+    tgs_client_email = tgs_metadata.get('client_email', '')
     tgs_traffic_control_company = tgs_metadata.get('traffic_control_company', '')
     tgs_local_government_area = tgs_metadata.get('local_government_area', '')
+    tgs_designer_name = tgs_metadata.get('designer_name', '')
+    tgs_designer_tmd_number = tgs_metadata.get('designer_tmd_number', '')
+    tgs_designer_date = tgs_metadata.get('designer_date', '')
 
     if not project_name and tgs_project_name:
         project_name = tgs_project_name
@@ -1096,8 +1620,25 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
         project_location = tgs_site_location
     if not client_company and tgs_client_company:
         client_company = tgs_client_company
+    if not client_name and tgs_client_contact:
+        client_name = tgs_client_contact
+    if not client_phone and tgs_client_phone:
+        client_phone = tgs_client_phone
+    if not client_email and tgs_client_email:
+        client_email = tgs_client_email
     if not traffic_control_company and tgs_traffic_control_company:
         traffic_control_company = tgs_traffic_control_company
+
+    if not pm_name and client_name:
+        pm_name = client_name
+    if not pm_phone and client_phone:
+        pm_phone = client_phone
+    if not pm_email and client_email:
+        pm_email = client_email
+    if not nto_name and tgs_designer_name:
+        nto_name = tgs_designer_name
+    if not nto_op_number and tgs_designer_tmd_number:
+        nto_op_number = tgs_designer_tmd_number
 
     if tgs_stage_name and tgs_stage_name not in stages:
         stages = [*stages, tgs_stage_name]
@@ -1132,9 +1673,9 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
         )
 
     tgs_reference = normalized_form.get('tgs_reference', tgs_sheet_reference)
-    tgs_number = normalized_form.get('tgs_number', '')
-    cc_input = normalized_form.get('cc', normalized_form.get('cc_number', ''))
-    revision_number = normalized_form.get('revision_number', '0')
+    tgs_number = normalized_form.get('tgs_number', tgs_sheet_reference)
+    cc_input = normalized_form.get('cc', normalized_form.get('cc_number', '')) or tgs_sheet_reference
+    revision_number = normalized_form.get('revision_number', tgs_revision_number or '0')
     cc_match = re.search(r'CC\d{5}', cc_input, flags=re.IGNORECASE)
     cc_base_number = cc_match.group(0) if cc_match else cc_input
     document_reference = build_document_reference(cc_input or cc_base_number, revision_number)
@@ -1143,10 +1684,10 @@ def build_context(form, template_fields, stages, doc, uploaded_images):
         'tmr_cert_82_number',
         normalized_form.get('tmr_cert82_number', nto_op_number or nto_tmr_tmd)
     )
-    author_name = normalized_form.get('author_name', client_name or 'Crompton Concepts')
+    author_name = normalized_form.get('author_name', tgs_designer_name or client_name or 'Crompton Concepts')
     author_signature = normalized_form.get('author_signature', initials_from_name(author_name))
-    author_position = normalized_form.get('author_position', 'Traffic Technician')
-    author_date = normalized_form.get('author_date', today)
+    author_position = normalized_form.get('author_position', 'Traffic Management Designer' if tgs_designer_name else 'Traffic Technician')
+    author_date = normalized_form.get('author_date', tgs_designer_date or today)
     lot_parcel_number = normalized_form.get('lot_parcel_number', '')
     development_type = normalized_form.get('development_type', '')
     number_of_floors = normalized_form.get('number_of_floors', '')
@@ -1539,7 +2080,9 @@ def extract_tgs_page_images(request_files, render_scale=2):
                     drawing_page = (image_count + drawing_count) > 0 and low_text_density
                     has_traffic_keywords = any(keyword in upper_text for keyword in (
                         'ROAD SPEED', 'DETOUR', 'STOP/SLOW', 'STOP SLOW', 'PEDESTRIAN MANAGEMENT',
-                        'TRAFFIC MANAGEMENT', 'LANE CLOSURE', 'FOOTPATH WORKS', 'TGS'
+                        'TRAFFIC MANAGEMENT', 'TRAFFIC IMPACT ANALYSIS', 'TRAFFIC IMPACT ASSESSMENT',
+                        'LANE CLOSURE', 'FOOTPATH WORKS', 'VEHICULAR TRAFFIC', 'POTENTIAL RISK',
+                        'INSTALLATION PROCESS', 'REMOVAL PROCESS', 'MANIFEST', 'TGS', 'VCR', 'QUEUE LENGTH'
                     ))
                     looks_like_contents_page = ('CONTENTS' in upper_text) or (upper_text.count('FIGURE ') >= 3) or bool(re.search(r'\.{4,}', page_text))
 
@@ -1565,6 +2108,30 @@ def extract_tgs_page_images(request_files, render_scale=2):
                         'cross_streets': page_metadata.get('cross_streets', ''),
                         'road_speed': page_metadata.get('road_speed', ''),
                         'sheet_reference': page_metadata.get('sheet_reference', ''),
+                        'revision_number': page_metadata.get('revision_number', ''),
+                        'project_name': page_metadata.get('project_name', ''),
+                        'design_company': page_metadata.get('design_company', ''),
+                        'client_company': page_metadata.get('client_company', ''),
+                        'client_contact': page_metadata.get('client_contact', ''),
+                        'client_phone': page_metadata.get('client_phone', ''),
+                        'client_email': page_metadata.get('client_email', ''),
+                        'traffic_control_company': page_metadata.get('traffic_control_company', ''),
+                        'local_government_area': page_metadata.get('local_government_area', ''),
+                        'design_scale': page_metadata.get('design_scale', ''),
+                        'orientation': page_metadata.get('orientation', ''),
+                        'designer_name': page_metadata.get('designer_name', ''),
+                        'designer_tmd_number': page_metadata.get('designer_tmd_number', ''),
+                        'designer_date': page_metadata.get('designer_date', ''),
+                        'option_analysis_extract': page_metadata.get('option_analysis_extract', ''),
+                        'risk_assessment_extract': page_metadata.get('risk_assessment_extract', ''),
+                        'installation_process': page_metadata.get('installation_process', ''),
+                        'removal_process': page_metadata.get('removal_process', ''),
+                        'manifest_text': page_metadata.get('manifest_text', ''),
+                        'page_type': page_metadata.get('page_type', ''),
+                        'is_cover_page': page_metadata.get('is_cover_page', False),
+                        'is_tia_page': page_metadata.get('is_tia_page', False),
+                        'is_option_risk_page': page_metadata.get('is_option_risk_page', False),
+                        'is_design_page': page_metadata.get('is_design_page', False),
                     })
             finally:
                 pdf_doc.close()
@@ -1640,14 +2207,37 @@ def build_tgs_preview_payload(uploaded_images):
         methodology = normalize_context_value(image_info.get('methodology', '')).strip()
         subtitle_parts = [part for part in [stage_name, methodology] if part]
 
+        page_type = normalize_context_value(image_info.get('page_type', '')).strip()
+        label = sheet_reference or page_type or ('Cover Page' if image_info.get('is_cover_page') else f'TGS Page {page_number}')
+        if (image_info.get('is_tia_page') or image_info.get('is_option_risk_page') or image_info.get('is_design_page')) and page_type:
+            subtitle_parts.insert(0, page_type)
+
         preview_pages.append({
             'id': f'tgs-{index}',
             'pageNumber': page_number,
             'sheetReference': sheet_reference,
             'stageName': stage_name,
             'methodology': methodology,
-            'label': sheet_reference or f'TGS Page {page_number}',
-            'subtitle': ' • '.join(subtitle_parts),
+            'pageType': page_type,
+            'isCoverPage': bool(image_info.get('is_cover_page')),
+            'isTiaPage': bool(image_info.get('is_tia_page')),
+            'isOptionRiskPage': bool(image_info.get('is_option_risk_page')),
+            'isDesignPage': bool(image_info.get('is_design_page')),
+            'revisionNumber': normalize_context_value(image_info.get('revision_number', '')).strip(),
+            'clientCompany': normalize_context_value(image_info.get('client_company', '')).strip(),
+            'clientContact': normalize_context_value(image_info.get('client_contact', '')).strip(),
+            'designerName': normalize_context_value(image_info.get('designer_name', '')).strip(),
+            'designerDate': normalize_context_value(image_info.get('designer_date', '')).strip(),
+            'siteLocation': normalize_context_value(image_info.get('site_location', '')).strip(),
+            'crossStreets': normalize_context_value(image_info.get('cross_streets', '')).strip(),
+            'roadSpeed': normalize_context_value(image_info.get('road_speed', '')).strip(),
+            'optionAnalysisExtract': normalize_context_value(image_info.get('option_analysis_extract', '')).strip(),
+            'riskAssessmentExtract': normalize_context_value(image_info.get('risk_assessment_extract', '')).strip(),
+            'installationProcess': normalize_context_value(image_info.get('installation_process', '')).strip(),
+            'removalProcess': normalize_context_value(image_info.get('removal_process', '')).strip(),
+            'manifestText': normalize_context_value(image_info.get('manifest_text', '')).strip(),
+            'label': label,
+            'subtitle': ' • '.join(dict.fromkeys(part for part in subtitle_parts if part)),
             'imageUrl': f"data:image/png;base64,{base64.b64encode(image_info['bytes']).decode('ascii')}",
         })
 
@@ -1660,6 +2250,8 @@ def tgs_preview():
         uploaded_images = extract_tgs_page_images(request.files, render_scale=1.15)
         if not uploaded_images:
             return jsonify({'error': 'No TGS PDF or diagram pages were found'}), 400
+
+        uploaded_images = normalize_uploaded_tgs_pages(uploaded_images)
 
         response = summarize_tgs_analysis(uploaded_images)
         response['pages'] = build_tgs_preview_payload(uploaded_images)
