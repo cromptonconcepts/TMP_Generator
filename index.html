@@ -394,8 +394,17 @@
         .editor-table tr:nth-child(even) td { background: #f5f8fb; }
         .doc-boilerplate { color: #444; }
         .doc-placeholder { background: #fffbe6; border: 1px dashed #d4b64a; border-radius: 6px; padding: 10px 14px; margin: 10px 0; color: #7a5c00; font-style: italic; font-size: 0.9rem; }
+        .doc-subblock { border-left: 3px solid #4a7ea8; padding-left: 12px; margin: 10px 0 14px; }
         .toc-list { columns: 2; column-gap: 32px; margin: 10px 0; }
         .toc-list li { break-inside: avoid; margin-bottom: 6px; }
+        .stage-planner { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+        .stage-detail-card { border: 1px solid #d9e4ef; border-radius: 12px; background: #fbfdff; overflow: hidden; }
+        .stage-detail-card summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 700; color: var(--color-primary); background: #eef5fb; }
+        .stage-detail-card summary::-webkit-details-marker { display: none; }
+        .stage-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; padding: 14px; }
+        .stage-field-group { margin-bottom: 0; }
+        .stage-button-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 8px; }
+        .stage-button-row .mini-button { width: auto; }
         .tgs-library-grid { display: flex; flex-direction: column; gap: 12px; max-height: 950px; overflow: auto; }
         .tgs-card { border: 1px solid var(--color-border); border-radius: 12px; background: white; padding: 10px; box-shadow: 0 8px 18px rgba(15, 34, 53, 0.05); }
         .tgs-card-tag { display: inline-block; margin-bottom: 8px; background: var(--color-accent-soft); color: #7a4d00; padding: 5px 8px; border-radius: 999px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
@@ -831,6 +840,13 @@
                 <label><input type="checkbox" name="stages" value="Line Marking and Signage"> Line Marking and Signage</label>
                 <label><input type="checkbox" name="stages" value="Final Traffic Switch"> Final Traffic Switch</label>
             </div>
+            <div class="field-note" style="margin-top: 10px;">Selecting a stage creates a detailed stage planner below. Repeated TIA or option analysis items can be copied from the stage above.</div>
+            <div id="stagePlanner" class="stage-planner">
+                <div class="reference-card">
+                    <div class="reference-card-title">No stages selected yet</div>
+                    <div class="field-note">Choose one or more construction stages to define information, risk assessment, traffic impact, option analysis, TGS reference, and misc notes for each stage.</div>
+                </div>
+            </div>
         </div>
 
         </details>
@@ -952,10 +968,16 @@
     const loadingStatus = document.getElementById('loadingStatus');
     const editorWorkspace = document.getElementById('editorWorkspace');
     const documentEditor = document.getElementById('documentEditor');
+    const stagePlanner = document.getElementById('stagePlanner');
     const tgsLibraryGrid = document.getElementById('tgsLibraryGrid');
     const tgsLibraryCount = document.getElementById('tgsLibraryCount');
     const editorStatusBadge = document.getElementById('editorStatusBadge');
     const DRAFT_STORAGE_KEY = 'ctmp-generator-draft-v2';
+    const DEFAULT_APP_URLS = {
+        option: 'https://cromptonconcepts.github.io/Option_Analysis/',
+        risk: 'https://cromptonconcepts.github.io/Risk-Assessment/',
+        tia: 'https://cromptonconcepts.github.io/Cromton-Traffic-Impact-Asssessment/'
+    };
     let currentTgsPreviewPages = [];
     let savedSelectionRange = null;
 
@@ -1197,6 +1219,16 @@
         formElement.querySelectorAll('input[type="checkbox"]').forEach(field => field.checked = false);
 
         Object.entries(payload).forEach(([key, value]) => {
+            if (key !== 'stages') return;
+            const values = Array.isArray(value) ? value : [value];
+            Array.from(formElement.querySelectorAll(`[name="${key}"]`)).forEach(node => {
+                node.checked = values.includes(node.value);
+            });
+        });
+
+        renderStagePlanner(payload);
+
+        Object.entries(payload).forEach(([key, value]) => {
             const field = formElement.elements.namedItem(key);
             if (!field) return;
 
@@ -1287,6 +1319,7 @@
             uploadMeta.textContent = 'No file selected yet.';
             currentTgsPreviewPages = [];
             renderTgsLibrary([]);
+            renderStagePlanner();
             updateSectionStatuses();
             return;
         }
@@ -1301,6 +1334,209 @@
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value == null || value === '') return [];
         return [value];
+    }
+
+    function slugifyStageName(value) {
+        return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'stage';
+    }
+
+    function getSelectedStages() {
+        return Array.from(document.querySelectorAll('input[name="stages"]:checked')).map(field => field.value);
+    }
+
+    function collectCurrentStageValues() {
+        const values = {};
+        if (!stagePlanner) return values;
+
+        stagePlanner.querySelectorAll('textarea, input, select').forEach(field => {
+            if (field.name) {
+                values[field.name] = field.value;
+            }
+        });
+
+        return values;
+    }
+
+    function buildTgsSelectOptions(selectedValue = '') {
+        const options = currentTgsPreviewPages.map(page => {
+            const value = page.label || `TGS Page ${page.pageNumber}`;
+            const subtitle = page.subtitle ? ` — ${page.subtitle}` : '';
+            return `<option value="${escapeHtml(value)}"${value === selectedValue ? ' selected' : ''}>${escapeHtml(value + subtitle)}</option>`;
+        }).join('');
+
+        return `<option value="">Select from extracted TGS sheets</option>${options}`;
+    }
+
+    function openIntegratedTool(kind) {
+        const storageKey = `ctmp_${kind}_app_url`;
+        const url = localStorage.getItem(storageKey) || DEFAULT_APP_URLS[kind] || '';
+
+        if (!url) {
+            alert('The linked app URL is not configured.');
+            return;
+        }
+
+        localStorage.setItem(storageKey, url);
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    async function importIntoStageField(targetId) {
+        const field = document.getElementById(targetId);
+        if (!field) return;
+
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text.trim()) {
+                throw new Error('Clipboard is empty.');
+            }
+            field.value = text.trim();
+        } catch (error) {
+            const manualText = window.prompt('Paste the imported content for this field:', field.value || '');
+            if (manualText == null) return;
+            field.value = manualText;
+        }
+
+        validateField(field, true);
+        updateSectionStatuses();
+        saveDraftToLocalStorage();
+    }
+
+    function copyStageFieldFromAbove(targetId, group) {
+        const targetField = document.getElementById(targetId);
+        if (!targetField || !stagePlanner) return;
+
+        const groupFields = Array.from(stagePlanner.querySelectorAll(`[data-stage-group="${group}"]`));
+        const currentIndex = groupFields.indexOf(targetField);
+        if (currentIndex <= 0) {
+            alert('There is no completed stage above to copy from yet.');
+            return;
+        }
+
+        const sourceField = [...groupFields.slice(0, currentIndex)].reverse().find(field => String(field.value || '').trim());
+        if (!sourceField) {
+            alert('No previous value is available to copy.');
+            return;
+        }
+
+        targetField.value = sourceField.value;
+        validateField(targetField, true);
+        updateSectionStatuses();
+        saveDraftToLocalStorage();
+    }
+
+    function attachStagePlannerHandlers() {
+        if (!stagePlanner) return;
+
+        stagePlanner.querySelectorAll('[data-open-tool]').forEach(button => {
+            button.addEventListener('click', () => openIntegratedTool(button.dataset.openTool));
+        });
+
+        stagePlanner.querySelectorAll('[data-import-target]').forEach(button => {
+            button.addEventListener('click', () => importIntoStageField(button.dataset.importTarget));
+        });
+
+        stagePlanner.querySelectorAll('[data-copy-target]').forEach(button => {
+            button.addEventListener('click', () => copyStageFieldFromAbove(button.dataset.copyTarget, button.dataset.copyGroup));
+        });
+
+        stagePlanner.querySelectorAll('textarea, input, select').forEach(field => {
+            field.addEventListener('input', () => {
+                updateSectionStatuses();
+                saveDraftToLocalStorage();
+            });
+            field.addEventListener('change', () => {
+                updateSectionStatuses();
+                saveDraftToLocalStorage();
+            });
+        });
+    }
+
+    function renderStagePlanner(savedValues = {}) {
+        if (!stagePlanner) return;
+
+        const selectedStages = getSelectedStages();
+        const retainedValues = { ...collectCurrentStageValues(), ...(savedValues || {}) };
+
+        if (!selectedStages.length) {
+            stagePlanner.innerHTML = `
+                <div class="reference-card">
+                    <div class="reference-card-title">No stages selected yet</div>
+                    <div class="field-note">Choose one or more construction stages to define information, risk assessment, traffic impact, option analysis, TGS reference, and misc notes for each stage.</div>
+                </div>
+            `;
+            return;
+        }
+
+        stagePlanner.innerHTML = selectedStages.map((stage, index) => {
+            const slug = slugifyStageName(stage);
+            const infoId = `stageInfo_${slug}`;
+            const riskId = `stageRisk_${slug}`;
+            const tiaId = `stageTrafficImpact_${slug}`;
+            const optionId = `stageOptionAnalysis_${slug}`;
+            const tgsId = `stageTgsReference_${slug}`;
+            const miscId = `stageMisc_${slug}`;
+
+            return `
+                <details class="stage-detail-card" ${index === 0 ? 'open' : ''}>
+                    <summary>
+                        <span>${index + 1}. ${escapeHtml(stage)}</span>
+                        <span class="field-note">Click to edit this stage</span>
+                    </summary>
+                    <div class="stage-detail-grid">
+                        <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
+                            <label for="${infoId}">1. Information about the stage</label>
+                            <textarea id="${infoId}" name="${infoId}" required placeholder="Describe the specific works, plant, methodology, access, hours and constraints for this stage.">${escapeHtml(retainedValues[infoId] || '')}</textarea>
+                            <div class="field-note">This should be completed by the user for each stage.</div>
+                        </div>
+
+                        <div class="form-group stage-field-group">
+                            <label for="${riskId}">2. Risk Assessment</label>
+                            <div class="stage-button-row">
+                                <button type="button" class="mini-button" data-open-tool="risk">Open Risk App</button>
+                                <button type="button" class="mini-button" data-import-target="${riskId}">Import / Paste</button>
+                                ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${riskId}" data-copy-group="risk">Copy above</button>` : ''}
+                            </div>
+                            <textarea id="${riskId}" name="${riskId}" data-stage-group="risk" placeholder="Import the selected risks or paste the risk register summary for this stage.">${escapeHtml(retainedValues[riskId] || '')}</textarea>
+                        </div>
+
+                        <div class="form-group stage-field-group">
+                            <label for="${tiaId}">3. Traffic Impact Assessment</label>
+                            <div class="stage-button-row">
+                                <button type="button" class="mini-button" data-open-tool="tia">Open TIA App</button>
+                                <button type="button" class="mini-button" data-import-target="${tiaId}">Import / Paste</button>
+                                ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${tiaId}" data-copy-group="tia">Copy above</button>` : ''}
+                            </div>
+                            <textarea id="${tiaId}" name="${tiaId}" data-stage-group="tia" placeholder="Paste queue lengths, LOS, VCR and any temporary traffic impact notes here.">${escapeHtml(retainedValues[tiaId] || '')}</textarea>
+                        </div>
+
+                        <div class="form-group stage-field-group">
+                            <label for="${optionId}">4. Option Analysis</label>
+                            <div class="stage-button-row">
+                                <button type="button" class="mini-button" data-open-tool="option">Open Option App</button>
+                                <button type="button" class="mini-button" data-import-target="${optionId}">Import / Paste</button>
+                                ${index > 0 ? `<button type="button" class="mini-button" data-copy-target="${optionId}" data-copy-group="option">Copy above</button>` : ''}
+                            </div>
+                            <textarea id="${optionId}" name="${optionId}" data-stage-group="option" placeholder="Paste the selected option analysis outcome for this stage.">${escapeHtml(retainedValues[optionId] || '')}</textarea>
+                        </div>
+
+                        <div class="form-group stage-field-group">
+                            <label for="${tgsId}">5. TGS Reference</label>
+                            <select id="${tgsId}" name="${tgsId}" data-stage-group="tgs">
+                                ${buildTgsSelectOptions(retainedValues[tgsId] || '')}
+                            </select>
+                            <div class="field-note">Choose the matching TGS sheet from the extracted images.</div>
+                        </div>
+
+                        <div class="form-group stage-field-group" style="grid-column: 1 / -1;">
+                            <label for="${miscId}">Misc</label>
+                            <textarea id="${miscId}" name="${miscId}" placeholder="Add any extra notes, approvals, stakeholder conditions or stage-specific instructions here.">${escapeHtml(retainedValues[miscId] || '')}</textarea>
+                        </div>
+                    </div>
+                </details>
+            `;
+        }).join('');
+
+        attachStagePlannerHandlers();
     }
 
     function collectFormValues() {
@@ -1654,15 +1890,49 @@
                 <div class="doc-placeholder">Insert AADT table, traffic impact analysis table, and queue length estimation. Use the data source selected in the form (${e(payload.dataSource || 'hourly_profile')}).</div>
 
                 <h3>8.6 TTM Implementation</h3>
-                ${stages.length ? stages.map((stage, i) => `
-                    <h4>8.6.${i + 1} ${e(stage)}</h4>
-                    <p>${e(stage)} works are programmed as part of the ${e(stageText)} construction activities.</p>
-                    ${trafficNotes ? `<p>${nl2br(trafficNotes)}</p>` : ''}
-                    <div class="doc-placeholder">Insert the TGS figure for "${e(stage)}" from the right panel — drag or use the "Insert at cursor" button. Add site-active and aftercare figures.</div>
-                `).join('') : `
+                ${stages.length ? stages.map((stage, i) => {
+                    const stageSlug = String(stage || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+                    const stageInfo = payload[`stageInfo_${stageSlug}`] || constructionActivity || '';
+                    const stageRisk = payload[`stageRisk_${stageSlug}`] || '';
+                    const stageTrafficImpact = payload[`stageTrafficImpact_${stageSlug}`] || '';
+                    const stageOptionAnalysis = payload[`stageOptionAnalysis_${stageSlug}`] || '';
+                    const stageTgsReference = payload[`stageTgsReference_${stageSlug}`] || tgsRef || '';
+                    const stageMisc = payload[`stageMisc_${stageSlug}`] || '';
+
+                    return `
+                        <h4>8.6.${i + 1} ${e(stage)}</h4>
+                        <div class="doc-subblock">
+                            <p><strong>1. Information about the stage</strong></p>
+                            <p>${stageInfo ? nl2br(stageInfo) : 'Stage-specific information to be completed by the user.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>2. Risk Assessment</strong></p>
+                            <p>${stageRisk ? nl2br(stageRisk) : 'Import the relevant risks from the Risk Assessment app or paste the risk register summary here.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>3. Traffic Impact Assessment</strong></p>
+                            <p>${stageTrafficImpact ? nl2br(stageTrafficImpact) : 'Import queue, LOS and VCR outputs from the TIA app for this stage.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>4. Option Analysis</strong></p>
+                            <p>${stageOptionAnalysis ? nl2br(stageOptionAnalysis) : 'Import the selected option analysis outcome for this stage.'}</p>
+                        </div>
+                        <div class="doc-subblock">
+                            <p><strong>5. TGS Reference</strong></p>
+                            <p>${stageTgsReference ? e(stageTgsReference) : 'Select the matching TGS sheet from the extracted images.'}</p>
+                        </div>
+                        ${stageMisc ? `
+                            <div class="doc-subblock">
+                                <p><strong>Misc</strong></p>
+                                <p>${nl2br(stageMisc)}</p>
+                            </div>
+                        ` : ''}
+                        <div class="doc-placeholder">Insert the TGS figure for "${e(stage)}" from the right panel — drag or use the "Insert at cursor" button. Add site-active and aftercare figures.</div>
+                    `;
+                }).join('') : `
                     <p>No specific staging has been selected. Define the stages in Section 7 of the form.</p>
                 `}
-                ${tgsRef ? `<p><strong>TGS Reference:</strong> ${e(tgsRef)} &nbsp; <strong>TGS Number:</strong> ${e(tgsNum || 'N/A')}</p>` : ''}
+                ${tgsRef ? `<p><strong>General TGS Reference:</strong> ${e(tgsRef)} &nbsp; <strong>TGS Number:</strong> ${e(tgsNum || 'N/A')}</p>` : ''}
 
                 <hr class="doc-section-break">
 
@@ -1883,6 +2153,7 @@
             const data = await response.json();
             currentTgsPreviewPages = data.pages || [];
             renderTgsLibrary(currentTgsPreviewPages);
+            renderStagePlanner();
         } catch (error) {
             console.error('Error loading TGS preview pages:', error);
             currentTgsPreviewPages = [];
@@ -1926,6 +2197,7 @@
         }
 
         applySuggestedStages(data.stages || []);
+        renderStagePlanner();
 
         const stageList = (data.stages || []).length ? data.stages.map(item => `<li>${escapeHtml(item)}</li>`).join('') : '<li>No staging was detected.</li>';
         tgsSuggestionPanel.innerHTML = `
@@ -2202,6 +2474,14 @@
             }
         });
 
+        renderStagePlanner();
+        if (document.getElementById('stageInfo_gully_pit_inspection')) {
+            document.getElementById('stageInfo_gully_pit_inspection').value = 'Inspect existing pits, confirm service depths, establish work area and maintain safe pedestrian access during inspection activities.';
+            document.getElementById('stageRisk_gully_pit_inspection').value = 'Risks include live traffic exposure, slips/trips and worker interaction with pedestrians. Controls include delineation, spotters and reduced work area speed.';
+            document.getElementById('stageTrafficImpact_gully_pit_inspection').value = 'Minor intermittent impact expected. Short queues only, low LOS change, no significant VCR concern.';
+            document.getElementById('stageOptionAnalysis_gully_pit_inspection').value = 'Traffic past the worksite with pedestrian diversion selected as the preferred option.';
+        }
+
         updateDocumentReferencePreview();
         initializeAllDynamicEditors();
         loadTemplateParameters();
@@ -2364,7 +2644,16 @@ ${documentEditor.innerHTML}
         });
     }
 
+    document.querySelectorAll('input[name="stages"]').forEach(field => {
+        field.addEventListener('change', () => {
+            renderStagePlanner();
+            updateSectionStatuses();
+            saveDraftToLocalStorage();
+        });
+    });
+
     initializeAllDynamicEditors();
+    renderStagePlanner();
     updateTemplateRelevance();
     updateSectionStatuses();
     updateUploadDisplay();
